@@ -404,6 +404,70 @@
     </div>`;
   }
 
+  // ---------- app instalable (PWA)
+  let deferredPrompt = null;
+  const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const installBtn = document.getElementById("installBtn");
+  const doInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.hidden = true;
+      if (outcome === "accepted" && location.hash === "#/app") viewApp();
+    } else {
+      location.hash = "#/app";
+    }
+  };
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!isStandalone()) installBtn.hidden = false;
+    if (location.hash === "#/app") viewApp();
+  });
+  window.addEventListener("appinstalled", () => { installBtn.hidden = true; deferredPrompt = null; });
+  installBtn.addEventListener("click", doInstall);
+  if (isIOS() && !isStandalone()) installBtn.hidden = false;
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+
+  function viewApp() {
+    const url = location.href.split("#")[0];
+    const step = (n, t) => `<li><span class="stepn">${n}</span><span>${t}</span></li>`;
+    $app.innerHTML = `<div class="section"><h1>📲 SPIN en tu celular</h1>
+      <p class="muted" style="max-width:680px">Instalá la página como una app: queda un ícono con el escudo del club en la pantalla de inicio, se abre a pantalla completa y funciona aunque no tengas señal (con los últimos datos que hayas visto).</p>
+      ${isStandalone() ? `<div class="note">✅ Ya estás usando la app instalada.</div>` : ""}
+      ${deferredPrompt ? `<p><button class="btn" id="installNow">📲 Instalar ahora</button></p>` : ""}
+      <div class="grid g2 section">
+        <div class="card"><h3>🤖 Android (Chrome)</h3><ol class="steps">
+          ${step(1, "Abrí este sitio en <b>Chrome</b>.")}
+          ${step(2, "Tocá el botón <b>📲 Instalar app</b> de arriba, o el menú <b>⋮</b> → <b>Instalar app</b> / <b>Agregar a pantalla principal</b>.")}
+          ${step(3, "Confirmá con <b>Instalar</b>. El ícono de SPIN aparece con tus apps.")}
+        </ol></div>
+        <div class="card"><h3>🍎 iPhone / iPad (Safari)</h3><ol class="steps">
+          ${step(1, "Abrí este sitio en <b>Safari</b>.")}
+          ${step(2, "Tocá el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).")}
+          ${step(3, "Elegí <b>Agregar a pantalla de inicio</b> y después <b>Agregar</b>.")}
+        </ol></div>
+      </div>
+      <div class="card"><h3>🔗 Compartí el link</h3>
+        <p style="word-break:break-all"><a href="${esc(url)}">${esc(url)}</a></p>
+        <p><button class="btn ghost" id="shareBtn">Compartir / copiar link</button> <span class="small muted" id="shareMsg"></span></p>
+        <p class="small muted">Mandalo por WhatsApp al grupo del club para que todos la instalen.</p></div>
+    </div>`;
+    const inst = document.getElementById("installNow");
+    inst && inst.addEventListener("click", doInstall);
+    document.getElementById("shareBtn").addEventListener("click", async () => {
+      const msg = document.getElementById("shareMsg");
+      try {
+        if (navigator.share) { await navigator.share({ title: "SPIN Tenis de Mesa", text: "Jugadores y estadísticas del Club SPIN", url }); return; }
+        await navigator.clipboard.writeText(url); msg.textContent = "¡Link copiado!";
+      } catch (e) { msg.textContent = ""; }
+    });
+  }
+
   // ---------- router
   async function route() {
     killCharts();
@@ -419,8 +483,9 @@
     else if (r === "torneos") viewTorneos();
     else if (r === "comparar") await viewComparar(new URLSearchParams(qs || ""));
     else if (r === "club") viewClub();
+    else if (r === "app") viewApp();
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 

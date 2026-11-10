@@ -169,3 +169,11 @@ details.tour .body { padding: 6px 14px 12px; }
 .legend { display: flex; gap: 14px; justify-content: center; font-size: 12px; color: var(--gris); margin-top: 4px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 svg text { font-family: Inter, system-ui, sans-serif; }
+.install-btn { margin-left: auto; background: var(--celeste); color: #0E1B2A; border: 0; border-radius: 999px; padding: 7px 14px; font: 700 13px Inter, sans-serif; cursor: pointer; white-space: nowrap; }
+.install-btn:not([hidden]) + .menu-btn { margin-left: 8px; }
+.install-btn:not([hidden]) ~ .nav { margin-left: 12px; }
+@media (max-width: 760px) { .install-btn { padding: 6px 10px; font-size: 12px; } }
+.steps { list-style: none; padding: 0; margin: 0; }
+.steps li { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; }
+.stepn { flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--celeste); color: #0E1B2A; font-weight: 800; display: grid; place-items: center; font-size: 13px; }
+@media (display-mode: standalone) { .topbar { padding-top: env(safe-area-inset-top); } }

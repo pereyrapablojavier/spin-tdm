@@ -229,7 +229,7 @@ def build():
     if OUT.exists():
         shutil.rmtree(OUT)
     (OUT / "data").mkdir(parents=True)
-    for name in ("index.html", "404.html"):
+    for name in ("index.html", "404.html", "manifest.webmanifest", "sw.js"):
         if (ROOT / name).exists():
             shutil.copy(ROOT / name, OUT / name)
     shutil.copytree(ROOT / "assets", OUT / "assets")
