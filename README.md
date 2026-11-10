@@ -17,7 +17,10 @@ Sitio web del **Club SPIN Tenis de Mesa** (Villa Crespo · Villa Pueyrredón · 
 | `scripts/build.py` | Combina los datos (genera `_site/`; el workflow copia los JSON a `data/`). |
 | `.github/workflows/` | GitHub Action que actualiza los datos (lunes y jueves). GitHub Pages publica desde la rama `main`. |
 
-Para actualizar a mano: pestaña **Actions → "Actualizar datos" → Run workflow**.
+Para actualizar a mano: pestaña **Actions → "Actualizar datos" → Run workflow** y marcar qué actualizar
+(jugadores, calendario y/o Liga/Copa). La corrida automática actualiza todo.
+
+`scrape.py` también acepta partes sueltas: `python scripts/scrape.py calendario` o `python scripts/scrape.py jugadores`.
 
 ### Probar localmente
 

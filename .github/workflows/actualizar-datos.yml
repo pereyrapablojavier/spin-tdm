@@ -1,7 +1,22 @@
 name: Actualizar datos
 
 on:
+  # Manual: Actions → "Actualizar datos" → Run workflow → elegir qué actualizar.
   workflow_dispatch:
+    inputs:
+      jugadores:
+        description: "Jugadores (TMT + FETEMBA: ratings, rankings, fichas)"
+        type: boolean
+        default: true
+      calendario:
+        description: "Calendario de torneos de SPIN (próximos y podios)"
+        type: boolean
+        default: true
+      equipos:
+        description: "Liga de Equipos y Copa de Clubes (fetembaequipos.ar)"
+        type: boolean
+        default: true
+  # Automático: actualiza todo.
   schedule:
     # Lunes y jueves 09:17 UTC (06:17 en Buenos Aires)
     - cron: "17 9 * * 1,4"
@@ -9,27 +24,70 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    env:
+      # En la corrida automática no hay inputs: se actualiza todo.
+      JUGADORES: ${{ github.event_name != 'workflow_dispatch' || inputs.jugadores }}
+      CALENDARIO: ${{ github.event_name != 'workflow_dispatch' || inputs.calendario }}
+      EQUIPOS: ${{ github.event_name != 'workflow_dispatch' || inputs.equipos }}
     steps:
+      - name: Qué se actualiza
+        run: |
+          {
+            echo "### Actualizar datos ($([ "${{ github.event_name }}" = schedule ] && echo automático || echo manual))"
+            echo "| Parte | ¿Se actualiza? |"
+            echo "|---|---|"
+            echo "| Jugadores (TMT + FETEMBA) | $([ "$JUGADORES" = true ] && echo ✅ || echo —) |"
+            echo "| Calendario de torneos | $([ "$CALENDARIO" = true ] && echo ✅ || echo —) |"
+            echo "| Liga de Equipos y Copa de Clubes | $([ "$EQUIPOS" = true ] && echo ✅ || echo —) |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$JUGADORES" != true ] && [ "$CALENDARIO" != true ] && [ "$EQUIPOS" != true ]; then
+            echo "::error::No elegiste nada para actualizar."
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Descargar datos de TMT y FETEMBA
-        run: python scripts/scrape.py
-      - name: Descargar Liga de Equipos y Copa de Clubes
+      - name: Calendario de torneos (TMT)
+        if: env.CALENDARIO == 'true'
+        run: python scripts/scrape.py calendario
+      - name: Jugadores (TMT + FETEMBA)
+        if: env.JUGADORES == 'true'
+        run: python scripts/scrape.py jugadores
+      - name: Liga de Equipos y Copa de Clubes
+        if: env.EQUIPOS == 'true'
         continue-on-error: true
         run: python scripts/equipos.py
+      # Los pasos siguientes corren aunque falle una fuente, para guardar lo que sí se pudo bajar
+      # (cada script conserva los datos anteriores si su fuente no responde).
       - name: Armar datos del sitio
+        if: ${{ !cancelled() }}
         run: |
           python scripts/build.py
           cp _site/data/club.json _site/data/players.json _site/data/calendar.json _site/data/equipos.json data/
       - name: Guardar cambios (GitHub Pages publica solo)
+        if: ${{ !cancelled() }}
         run: |
+          partes=()
+          [ "$JUGADORES" = true ] && partes+=(jugadores)
+          [ "$CALENDARIO" = true ] && partes+=(calendario)
+          [ "$EQUIPOS" = true ] && partes+=(equipos)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/
-          git diff --cached --quiet && echo "Sin cambios" || (git commit -m "Actualizar datos de jugadores" && git push)
+          if git diff --cached --quiet; then
+            echo "Sin cambios" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            git commit -m "Actualizar datos: $(IFS=,; echo "${partes[*]}" | sed 's/,/, /g')"
+            git push
+            echo "Cambios guardados:" | tee -a "$GITHUB_STEP_SUMMARY"
+            git show --stat --format= HEAD | sed 's/^/    /' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

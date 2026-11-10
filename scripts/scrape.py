@@ -4,8 +4,11 @@ Genera:
   data/tmt_raw.json  - jugadores del club en Tenis de Mesa para Todos (TMT)
   data/fet_raw.json  - datos del club y sus jugadores en FETEMBA
 
-Uso:  python scripts/scrape.py
+Uso:  python scripts/scrape.py                 # todo (calendario + jugadores)
+      python scripts/scrape.py calendario      # solo el calendario de torneos del club
+      python scripts/scrape.py jugadores       # solo jugadores (TMT + FETEMBA)
 """
+import argparse
 import json
 import re
 import sys
@@ -354,12 +357,7 @@ def scrape_calendar():
     print("Calendario:", len(upcoming), "próximos,", len(past), "jugados")
 
 
-def main():
-    DATA.mkdir(exist_ok=True)
-    try:
-        scrape_calendar()
-    except Exception as e:  # noqa
-        print("Calendario: error", e, file=sys.stderr)
+def scrape_players():
     club_html = get(f"{TMT}/clubes_ampliar.asp?codigo={TMT_CLUB}")
     roster = parse_roster(club_html) if club_html else []
     if len(roster) < 10:
@@ -388,6 +386,24 @@ def main():
            "byTmt": {k: v for k, v in bt.items() if v}, "fetOnly": {k: v for k, v in fo.items() if v}}
     (DATA / "fet_raw.json").write_text(json.dumps(out, ensure_ascii=False))
     print("FETEMBA:", len(out["byTmt"]), "vinculados +", len(out["fetOnly"]), "solo FETEMBA")
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Descarga datos del club SPIN desde TMT y FETEMBA.")
+    ap.add_argument("partes", nargs="*", metavar="{calendario,jugadores}",
+                    help="qué actualizar (por defecto, todo)")
+    todas = {"calendario", "jugadores"}
+    partes = set(ap.parse_args().partes) or todas
+    if partes - todas:
+        ap.error("opción desconocida: " + ", ".join(sorted(partes - todas)))
+    DATA.mkdir(exist_ok=True)
+    if "calendario" in partes:
+        try:
+            scrape_calendar()
+        except Exception as e:  # noqa
+            print("Calendario: error", e, file=sys.stderr)
+    if "jugadores" in partes:
+        scrape_players()
 
 
 if __name__ == "__main__":
