@@ -226,6 +226,7 @@ def build():
     }
 
     calendar = build_calendar(players)
+    equipos = build_equipos(players)
 
     # --- write
     if OUT.exists():
@@ -239,6 +240,8 @@ def build():
     (OUT / "data" / "club.json").write_text(json.dumps(club, ensure_ascii=False, separators=(",", ":")))
     if calendar:
         (OUT / "data" / "calendar.json").write_text(json.dumps(calendar, ensure_ascii=False, separators=(",", ":")))
+    if equipos:
+        (OUT / "data" / "equipos.json").write_text(json.dumps(equipos, ensure_ascii=False, separators=(",", ":")))
     (OUT / "data" / "players.json").write_text(json.dumps(players, ensure_ascii=False, separators=(",", ":")))
     print(f"Sitio generado en {OUT} — {len(players)} jugadores")
 
@@ -282,6 +285,111 @@ def build_calendar(players):
                      key=lambda r: (-r["p1"], -r["p2"], -r["p3"]))[:15]
     return {"updated": raw.get("updated"), "ligas": raw.get("ligas"), "upcoming": upcoming, "past": past,
             "ranking": ranking}
+
+
+CAMPEONATOS = {5: "Liga de Equipos · 2° semestre", 3: "Liga de Equipos · 1° semestre", 4: "Copa de Clubes"}
+
+
+def is_spin_team(name):
+    return bool(re.match(r"^spin tdm", (name or "").strip(), re.I))
+
+
+def build_equipos(players):
+    """Liga de Equipos y Copa de Clubes (fetembaequipos.ar): equipos de SPIN, tablas, cruces y jugadores."""
+    path = DATA / "eq_raw.json"
+    if not path.exists():
+        return None
+    raw = json.loads(path.read_text())
+    sets = raw.get("sets") or {}
+    by_fet = {str(p["fet"]["id"]): p["id"] for p in players.values() if p.get("fet")}
+    pstats = defaultdict(lambda: {"name": "", "s_w": 0, "s_l": 0, "d_w": 0, "d_l": 0, "enc": set(), "teams": set()})
+
+    def enc_out(e, comp, team_hint=None):
+        spin_local = is_spin_team(e.get("local"))
+        spin_name = e["local"] if spin_local else e["visit"]
+        st = sets.get(str(e["id"])) or {}
+        played = (e.get("rl") or 0) + (e.get("rv") or 0) > 0
+        parts = []
+        for p in e.get("partidos") or []:
+            r = st.get(str(p["n"])) or {}
+            g = r.get("g")
+            spin_won = None
+            if g:
+                spin_won = (g == e["local"]) if spin_local else (g == e["visit"])
+                if g not in (e["local"], e["visit"]):
+                    spin_won = is_spin_team(g)
+            mine = [x for x in ((p.get("l1"), p.get("l2")) if spin_local else (p.get("v1"), p.get("v2"))) if x]
+            rival = [x for x in ((p.get("v1"), p.get("v2")) if spin_local else (p.get("l1"), p.get("l2"))) if x]
+            sets_list = r.get("sets") or []
+            if not spin_local:  # mostrar los sets desde el lado de SPIN
+                sets_list = ["-".join(reversed(x.split("-"))) for x in sets_list]
+            if spin_won is not None:
+                for pid, pname in mine:
+                    s = pstats[str(pid)]
+                    s["name"] = pname
+                    key = ("s_" if p.get("t") == "S" else "d_") + ("w" if spin_won else "l")
+                    s[key] += 1
+                    s["enc"].add(e["id"])
+                    s["teams"].add(comp)
+            parts.append({"n": p["n"], "t": p.get("t"), "spin": [[str(i), n, by_fet.get(str(i))] for i, n in mine],
+                          "rival": [[str(i), n] for i, n in rival], "sets": sets_list, "w": spin_won})
+        gf, gc = (e.get("rl"), e.get("rv")) if spin_local else (e.get("rv"), e.get("rl"))
+        return {"id": e["id"], "fecha": e.get("fecha"), "hora": (e.get("hora") or "")[:5], "sede": e.get("sede"),
+                "mesa": e.get("mesa"), "fecha_n": e.get("desc_fecha"), "spin": spin_name,
+                "rival": e["visit"] if spin_local else e["local"], "local": spin_local, "gf": gf, "gc": gc,
+                "played": played, "res": ("G" if gf > gc else "P") if played else None, "partidos": parts}
+
+    comps = []
+    for z in raw.get("zones") or []:
+        comp = CAMPEONATOS.get(z.get("camp"), "Competencia")
+        titulo = z.get("titulo") or ""
+        cat = titulo.split(" / ")[0].title() if z.get("tipo") == "liga" else titulo.split(" / ")[0].title()
+        fase = titulo.split(" / ")[1].title() if " / " in titulo else ""
+        encs = sorted([enc_out(e, comp) for e in z.get("encuentros") or []
+                       if is_spin_team(e.get("local")) or is_spin_team(e.get("visit"))], key=lambda x: (x["fecha"] or "9999", x["hora"]))
+        for team in sorted({r["club"] for r in z.get("tabla") or [] if is_spin_team(r["club"])}):
+            row = next(r for r in z["tabla"] if r["club"] == team)
+            comps.append({"tipo": z.get("tipo"), "camp": z.get("camp"), "comp": comp, "cat": cat, "fase": fase,
+                          "zona": (z.get("zona") or "").title(), "team": team, "pos": row.get("pos"),
+                          "n": len(z["tabla"]), "pts": row.get("pts"), "pj": row.get("pj"), "pg": row.get("pg"),
+                          "pp": row.get("pp"), "tabla": z["tabla"],
+                          "encuentros": [x for x in encs if x["spin"] == team]})
+    for e in raw.get("playoff") or []:
+        comp = CAMPEONATOS.get(e.get("camp"), "Competencia")
+        titulo = e.get("titulo") or ""
+        x = enc_out(e, comp)
+        comps.append({"tipo": e.get("tipo"), "camp": e.get("camp"), "comp": comp, "cat": titulo.split(" / ")[0].title(),
+                      "fase": (titulo.split(" / ")[1].title() if " / " in titulo else "Play Off"), "zona": e.get("desc_fecha") or "",
+                      "team": x["spin"], "pos": None, "n": None, "pts": None, "pj": 1, "pg": 1 if x["res"] == "G" else 0,
+                      "pp": 1 if x["res"] == "P" else 0, "tabla": [], "encuentros": [x]})
+    order = {5: 0, 4: 1, 3: 2}
+    cat_order = ["Division De Honor", "División De Honor", "Primera", "Segunda", "Tercera", "Cuarta", "Quinta", "Sexta", "Septima", "Séptima", "Octava"]
+    def ck(c):
+        for i, k in enumerate(cat_order):
+            if c["cat"].startswith(k):
+                return i
+        return 99
+    fixw = lambda t: re.sub(r"\bDivision\b", "División", re.sub(r"\bSeptima\b", "Séptima", t or ""))  # noqa
+    for c in comps:
+        c["cat"], c["fase"] = fixw(c["cat"]), fixw(c["fase"])
+        if c["tipo"] == "copa":
+            c["fase"] = ""
+    comps.sort(key=lambda c: (order.get(c["camp"], 9), ck(c), c["fase"], c["team"]))
+    upcoming = []
+    for u in raw.get("upcoming") or []:
+        sl = is_spin_team(u.get("club_local"))
+        upcoming.append({"tipo": u.get("tipo"), "comp": u.get("nom_campeonato") or "Copa de Clubes", "cat": re.sub(r"\bDivision\b", "División", (u.get("nom_categoria") or "").title()),
+                         "zona": (u.get("nom_zona") or u.get("nombre_zona") or "").title(), "fecha_n": u.get("desc_fecha"),
+                         "fecha": u.get("fecha"), "hora": (u.get("hora") or "")[:5], "sede": u.get("sede"), "mesa": u.get("mesa"),
+                         "spin": u["club_local"] if sl else u["club_visitante"], "rival": u["club_visitante"] if sl else u["club_local"], "local": sl})
+    upcoming.sort(key=lambda u: (u["fecha"] or "", u["hora"]))
+    jug = []
+    for fid, s in pstats.items():
+        tot_w, tot_l = s["s_w"] + s["d_w"], s["s_l"] + s["d_l"]
+        jug.append({"fid": fid, "id": by_fet.get(fid), "name": s["name"], "s_w": s["s_w"], "s_l": s["s_l"], "d_w": s["d_w"],
+                    "d_l": s["d_l"], "w": tot_w, "l": tot_l, "pct": pct(tot_w, tot_w + tot_l), "enc": len(s["enc"])})
+    jug.sort(key=lambda j: (-(j["w"] + j["l"]), -j["w"]))
+    return {"updated": raw.get("updated"), "competencias": comps, "proximos": upcoming, "jugadores": jug}
 
 
 def _count(it):

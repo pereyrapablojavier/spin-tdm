@@ -283,6 +283,7 @@
           <b class="num">${esc(m.res)}</b><span class="num small">${signed(m.v)}</span></div>`).join("")}</div></details>`).join("")}
     </div>` : ""}
 
+    <div id="eqPlayer"></div>
     ${f ? `
     <div class="section grid g2">
       <div class="card"><h3>FETEMBA · Historial de rating</h3><div id="chF"></div>
@@ -304,6 +305,17 @@
         <ul class="list">${(f.pal || []).length ? f.pal.slice(0, 12).map((x) => `<li><span class="medal">${medal(x.pu)}</span><span class="grow"><div class="ellipsis"><b>${esc(x.ev)}</b> · ${esc(x.cat)}</div><div class="small muted">${fdate(x.f)} · ${esc(x.tipo)}</div></span></li>`).join("") : `<li class="muted">Sin podios registrados</li>`}</ul></div>
     </div>` : ""}
     `;
+    if (f) getJSON("data/equipos.json").then((E) => {
+      const box = document.getElementById("eqPlayer"); if (!box) return;
+      const rows = []; E.competencias.forEach((c) => c.encuentros.forEach((e) => e.partidos.forEach((p) => {
+        if (p.w == null || !p.spin.some((x) => x[0] === String(f.id))) return;
+        rows.push({ c, e, p }); })));
+      if (!rows.length) return;
+      const by = {}; rows.forEach(({ c, p }) => { const k = c.comp; const b = by[k] || (by[k] = { s_w: 0, s_l: 0, d_w: 0, d_l: 0, tipo: c.tipo, teams: new Set() }); b[(p.t === "D" ? "d_" : "s_") + (p.w ? "w" : "l")]++; b.teams.add(c.team + " · " + c.cat); });
+      box.innerHTML = `<div class="card section"><h3>🏟️ Liga de Equipos y Copa de Clubes</h3><div class="tbl-wrap"><table><thead><tr><th>Competencia</th><th>Equipo</th><th class="r">Singles</th><th class="r">Dobles</th></tr></thead><tbody>
+        ${Object.entries(by).map(([k, b]) => `<tr><td><a href="#/${b.tipo}">${esc(k)}</a></td><td class="small">${[...b.teams].map(esc).join("<br>")}</td><td class="r num">${b.s_w}-${b.s_l}</td><td class="r num">${b.d_w}-${b.d_l}</td></tr>`).join("")}
+        </tbody></table></div></div>`;
+    }).catch(() => {});
     // tabs
     const tabs = document.getElementById("stTabs");
     tabs && tabs.addEventListener("click", (e) => {
@@ -522,6 +534,84 @@
     drawPast();
   }
 
+  // ---------- Liga de Equipos y Copa de Clubes (fetembaequipos.ar)
+  const EQ_URL = "https://fetembaequipos.ar";
+  const eqState = { camp: null, open: {} };
+  const resBadge = (e) => e.played ? `<span class="wl ${e.res}">${e.res}</span>` : `<span class="wl pend">–</span>`;
+  const eqPlayer = (x) => x[2] ? plink(x[2], x[1]) : esc(x[1]);
+  function encuentroHTML(e) {
+    const fecha = e.fecha ? `${fdate(e.fecha)}${e.hora ? " · " + e.hora + " hs" : ""}` : "";
+    return `<details class="tour enc"><summary>${resBadge(e)}
+      <span class="t"><span class="muted small">${esc(e.fecha_n || "")}</span> ${e.local ? `<b>${esc(e.spin)}</b> vs ${esc(e.rival)}` : `${esc(e.rival)} vs <b>${esc(e.spin)}</b>`}</span>
+      <span class="small muted">${fecha}</span>${e.played ? `<b class="num score">${e.local ? e.gf + "-" + e.gc : e.gc + "-" + e.gf}</b>` : `<span class="small badge">Próximo</span>`}</summary>
+      <div class="body">${e.partidos.length ? e.partidos.map((p) => `<div class="match"><span class="wl ${p.w == null ? "pend" : p.w ? "G" : "P"}">${p.w == null ? "·" : p.w ? "G" : "P"}</span>
+        <span class="ellipsis"><span class="badge src">${p.t === "D" ? "Dobles" : "Single"}</span> ${p.spin.map(eqPlayer).join(" / ") || "–"} <span class="muted">vs</span> ${p.rival.map((x) => esc(x[1])).join(" / ") || "–"}
+        <br><span class="sets">${p.sets.length ? p.sets.join("  ") : (e.played ? "" : "Formación anunciada")}</span></span>
+        <b class="num">${p.sets.length ? p.sets.filter((x) => +x.split("-")[0] > +x.split("-")[1]).length + "-" + p.sets.filter((x) => +x.split("-")[0] < +x.split("-")[1]).length : ""}</b><span></span></div>`).join("") : `<p class="small muted">Sin formaciones cargadas.</p>`}
+      ${e.sede ? `<p class="small muted" style="margin:8px 0 0">📍 ${esc(e.sede)}${e.mesa ? " · Mesa " + esc(e.mesa) : ""}</p>` : ""}</div></details>`;
+  }
+  async function viewEquipos(tipo) {
+    $app.innerHTML = `<div class="loading">Cargando…</div>`;
+    let E;
+    try { E = await getJSON("data/equipos.json"); } catch (e) { $app.innerHTML = `<div class="section"><h1>${tipo === "liga" ? "Liga de Equipos" : "Copa de Clubes"}</h1><p class="muted">Todavía no hay datos.</p></div>`; return; }
+    const all = E.competencias.filter((c) => c.tipo === tipo);
+    const camps = [...new Map(all.map((c) => [c.camp, c.comp])).entries()];
+    if (!eqState.camp || !camps.some(([k]) => k === eqState.camp)) eqState.camp = camps.length ? camps[0][0] : null;
+    const prox = E.proximos.filter((u) => u.tipo === tipo);
+    const title = tipo === "liga" ? "Liga de Equipos" : "Copa de Clubes";
+    const intro = tipo === "liga" ? "Los equipos de SPIN en la Liga de Equipos de FETEMBA: posiciones por división, resultados de cada fecha y quién jugó cada partido."
+      : "SPIN en la Copa de Clubes de FETEMBA: tabla de su zona, resultados de cada encuentro y el detalle de cada partido.";
+    const draw = () => {
+      const comps = all.filter((c) => c.camp === eqState.camp);
+      // jugadores (calculado sobre la competencia elegida)
+      const ps = {};
+      comps.forEach((c) => c.encuentros.forEach((e) => e.partidos.forEach((p) => { if (p.w == null) return; p.spin.forEach((x) => {
+        const k = x[0]; const s = ps[k] || (ps[k] = { name: x[1], id: x[2], s_w: 0, s_l: 0, d_w: 0, d_l: 0, enc: new Set() });
+        s[(p.t === "D" ? "d_" : "s_") + (p.w ? "w" : "l")]++; s.enc.add(e.id); }); })));
+      const jug = Object.values(ps).map((s) => ({ ...s, w: s.s_w + s.d_w, l: s.s_l + s.d_l, enc: s.enc.size })).sort((a, b) => (b.w + b.l) - (a.w + a.l) || b.w - a.w);
+      const tw = comps.reduce((a, c) => a + (c.pg || 0), 0), tl = comps.reduce((a, c) => a + (c.pp || 0), 0);
+      const teams = new Set(comps.map((c) => c.team + "|" + c.cat)).size;
+      const lideres = comps.filter((c) => c.pos === 1).length;
+      document.getElementById("eqBody").innerHTML = `
+        <div class="grid tiles section">
+          ${tile(teams, tipo === "liga" ? "Equipos de SPIN" : "Participaciones")}
+          ${tile(`${tw}-${tl}`, "Encuentros G-P", `${pct(tw, tw + tl) ?? "–"}% ganados`)}
+          ${tile(lideres, "Zonas lideradas", "1° en la tabla")}
+          ${tile(jug.length, "Jugadores que sumaron")}
+        </div>
+        <div class="grid g2">${comps.map((c, i) => {
+          const key = c.camp + "-" + i;
+          return `<div class="card eqcard"><div class="card-head"><div><h3 style="margin:0">${esc(c.team)}</h3>
+            <div class="small muted">${esc(c.cat)}${c.fase ? " · " + esc(c.fase) : ""}${c.zona ? " · " + esc(c.zona) : ""}</div></div>
+            ${c.pos ? `<div class="pos ${c.pos === 1 ? "p1" : ""}"><b>${c.pos}°</b><span>de ${c.n}</span></div>` : `<span class="badge">Play Off</span>`}</div>
+            <div class="small" style="margin:8px 0">${c.pts != null ? `<b>${c.pts}</b> pts · ` : ""}${c.pg}G · ${c.pp}P</div>
+            ${c.tabla.length ? `<details ${eqState.open[key + "t"] ? "open" : ""} data-k="${key}t"><summary class="small linkish">Ver tabla de posiciones</summary><div class="tbl-wrap"><table class="small"><thead><tr><th>#</th><th>Equipo</th><th class="r">Pts</th><th class="r">PJ</th><th class="r">G</th><th class="r">P</th><th class="r">Dif</th></tr></thead><tbody>
+              ${c.tabla.map((r) => `<tr class="${/^spin tdm/i.test(r.club) ? "spinrow" : ""}"><td class="num">${r.pos}</td><td>${esc(r.club)}</td><td class="r num"><b>${r.pts}</b></td><td class="r num">${r.pj}</td><td class="r num">${r.pg}</td><td class="r num">${r.pp}</td><td class="r num">${signed(r.dif)}</td></tr>`).join("")}
+            </tbody></table></div></details>` : ""}
+            <div style="margin-top:8px">${c.encuentros.map(encuentroHTML).join("")}</div></div>`; }).join("")}</div>
+        ${jug.length ? `<div class="card section"><h3>👥 Jugadores de SPIN</h3><p class="small muted">Partidos individuales y de dobles en ${esc(camps.find(([k]) => k === eqState.camp)?.[1] || "")}.</p>
+          <div class="tbl-wrap"><table><thead><tr><th>Jugador</th><th class="r">Singles</th><th class="r">Dobles</th><th class="r">Total</th><th class="r">%</th><th class="r">Encuentros</th></tr></thead><tbody>
+          ${jug.map((j) => `<tr><td>${j.id ? plink(j.id, j.name) : esc(j.name)}</td><td class="r num">${j.s_w}-${j.s_l}</td><td class="r num">${j.d_w}-${j.d_l}</td><td class="r num"><b>${j.w}-${j.l}</b></td><td class="r num">${pct(j.w, j.w + j.l) ?? "–"}%</td><td class="r num">${j.enc}</td></tr>`).join("")}
+          </tbody></table></div></div>` : ""}`;
+      document.querySelectorAll("#eqBody details[data-k]").forEach((d) => d.addEventListener("toggle", () => { eqState.open[d.dataset.k] = d.open; }));
+      document.querySelectorAll("#eqCamps .chip").forEach((c) => c.classList.toggle("on", +c.dataset.c === eqState.camp));
+    };
+    $app.innerHTML = `<div class="section"><h1>${title}</h1>
+      <p class="muted" style="max-width:720px">${intro}</p>
+      ${prox.length ? `<div class="card section"><h3>📅 Próximos partidos</h3>${prox.map((u) => { const x = u.fecha ? pd(u.fecha) : null; return `<div class="evento">
+        <div class="fecha"><b>${x ? x.getDate() : "?"}</b><span>${x ? MESES[x.getMonth()].slice(0, 3) : ""}</span></div>
+        <div class="grow"><div class="pname">${u.local ? `${esc(u.spin)} <span class="muted">vs</span> ${esc(u.rival)}` : `${esc(u.rival)} <span class="muted">vs</span> ${esc(u.spin)}`}</div>
+        <div class="small muted">${[longDate(u.fecha) + (u.hora ? " · " + u.hora + " hs" : ""), u.cat, u.zona, u.fecha_n].filter(Boolean).map(esc).join(" · ")}</div>
+        <div class="small muted">📍 ${esc(u.sede || "")}${u.mesa ? " · Mesa " + esc(u.mesa) : ""}</div></div></div>`; }).join("")}</div>` : ""}
+      ${camps.length > 1 ? `<div class="chips" id="eqCamps">${camps.map(([k, n]) => `<button class="chip" data-c="${k}">${esc(n)}</button>`).join("")}</div>` : ""}
+      <div id="eqBody"></div>
+      <p class="small muted" style="margin-top:16px">Fuente: <a href="${EQ_URL}" target="_blank" rel="noopener">FETEMBA Equipos ↗</a>. Los jugadores con link tienen ficha en este sitio.</p></div>`;
+    const cc = document.getElementById("eqCamps");
+    cc && cc.addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { eqState.camp = +b.dataset.c; draw(); } });
+    if (!all.length) { document.getElementById("eqBody").innerHTML = `<p class="muted">SPIN no tiene equipos cargados en esta competencia.</p>`; return; }
+    draw();
+  }
+
   // ---------- app instalable (PWA)
   let deferredPrompt = null;
   const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -603,8 +693,10 @@
     else if (r === "club") viewClub();
     else if (r === "app") viewApp();
     else if (r === "calendario") await viewCalendario();
+    else if (r === "liga") await viewEquipos("liga");
+    else if (r === "copa") await viewEquipos("copa");
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 

@@ -13,6 +13,7 @@ Sitio web del **Club SPIN Tenis de Mesa** (Villa Crespo · Villa Pueyrredón · 
 | `data/tmt_raw.json`, `data/fet_raw.json` | Datos descargados de TMT y FETEMBA. |
 | `data/club.json`, `data/players.json` | Datos procesados que usa el sitio. |
 | `scripts/scrape.py` | Descarga los datos del club desde TMT y FETEMBA. |
+| `scripts/equipos.py` | Descarga la Liga de Equipos y la Copa de Clubes desde fetembaequipos.ar. |
 | `scripts/build.py` | Combina los datos (genera `_site/`; el workflow copia los JSON a `data/`). |
 | `.github/workflows/` | GitHub Action que actualiza los datos (lunes y jueves). GitHub Pages publica desde la rama `main`. |
 
