@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPIN Tenis de Mesa · Jugadores y estadísticas</title>
+  <meta name="description" content="Club SPIN Tenis de Mesa (Villa Crespo, Pueyrredón y Saavedra, CABA): plantel, ratings y estadísticas de TMT y FETEMBA.">
+  <meta name="theme-color" content="#1F5F96">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <a class="brand" href="#/">
+        <img src="assets/logo.svg" alt="" width="40" height="46">
+        <span><b>SPIN</b><small>Tenis de Mesa</small></span>
+      </a>
+      <button class="menu-btn" aria-label="Menú" aria-expanded="false">☰</button>
+      <nav class="nav">
+        <a href="#/" data-r="inicio">Inicio</a>
+        <a href="#/jugadores" data-r="jugadores">Jugadores</a>
+        <a href="#/torneos" data-r="torneos">Torneos</a>
+        <a href="#/comparar" data-r="comparar">Comparar</a>
+        <a href="#/club" data-r="club">El club</a>
+      </nav>
+    </div>
+  </header>
+  <main id="app" class="wrap"><div class="loading">Cargando…</div></main>
+  <footer class="footer">
+    <div class="wrap">
+      <p>Datos públicos de <a href="https://www.tenisdemesaparatodos.com/" target="_blank" rel="noopener">Tenis de Mesa para Todos (TMT)</a>
+        y <a href="https://fetemba.bsweb.com.ar/" target="_blank" rel="noopener">FETEMBA</a>. Se actualizan automáticamente.</p>
+      <p id="updated"></p>
+      <p><a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a></p>
+    </div>
+  </footer>
+  <script src="assets/app.js"></script>
+</body>
+</html>
