@@ -1,0 +1,32 @@
+name: Actualizar datos
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Lunes y jueves 09:17 UTC (06:17 en Buenos Aires)
+    - cron: "17 9 * * 1,4"
+
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Descargar datos de TMT y FETEMBA
+        run: python scripts/scrape.py
+      - name: Armar datos del sitio
+        run: |
+          python scripts/build.py
+          cp _site/data/club.json _site/data/players.json data/
+      - name: Guardar cambios (GitHub Pages publica solo)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet && echo "Sin cambios" || (git commit -m "Actualizar datos de jugadores" && git push)
