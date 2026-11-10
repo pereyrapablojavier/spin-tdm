@@ -20,10 +20,13 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Descargar datos de TMT y FETEMBA
         run: python scripts/scrape.py
+      - name: Descargar Liga de Equipos y Copa de Clubes
+        continue-on-error: true
+        run: python scripts/equipos.py
       - name: Armar datos del sitio
         run: |
           python scripts/build.py
-          cp _site/data/club.json _site/data/players.json data/
+          cp _site/data/club.json _site/data/players.json _site/data/calendar.json _site/data/equipos.json data/
       - name: Guardar cambios (GitHub Pages publica solo)
         run: |
           git config user.name "github-actions[bot]"
