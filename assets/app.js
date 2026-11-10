@@ -98,7 +98,7 @@
     $app.innerHTML = `
     <section class="hero">
       <div class="hero-in">
-        <img src="assets/logo.svg" alt="Escudo SPIN">
+        <img src="assets/escudo.png" alt="Escudo SPIN">
         <div><h1>SPIN Tenis de Mesa</h1>
         <p>Villa Crespo · Villa Pueyrredón · Saavedra — CABA. Plantel, ratings y estadísticas de todo el club en el circuito TMT y en FETEMBA.</p></div>
       </div>
