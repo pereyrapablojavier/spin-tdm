@@ -225,6 +225,8 @@ def build():
         "players": summary,
     }
 
+    calendar = build_calendar(players)
+
     # --- write
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -235,8 +237,51 @@ def build():
     shutil.copytree(ROOT / "assets", OUT / "assets")
     (OUT / ".nojekyll").write_text("")
     (OUT / "data" / "club.json").write_text(json.dumps(club, ensure_ascii=False, separators=(",", ":")))
+    if calendar:
+        (OUT / "data" / "calendar.json").write_text(json.dumps(calendar, ensure_ascii=False, separators=(",", ":")))
     (OUT / "data" / "players.json").write_text(json.dumps(players, ensure_ascii=False, separators=(",", ":")))
     print(f"Sitio generado en {OUT} — {len(players)} jugadores")
+
+
+SEDES = {273: "Villa Crespo", 246: "Villa Crespo", 349: "Saavedra", 284: "Villa Pueyrredón"}
+
+
+def build_calendar(players):
+    """Torneos organizados por SPIN: próximos (con horarios) y jugados (con podio 1° a 4°)."""
+    path = DATA / "cal_raw.json"
+    if not path.exists():
+        return None
+    raw = json.loads(path.read_text())
+    tmt_ids = {p["id"] for p in players.values() if p.get("tmt")}
+
+    def person(x):
+        name, club = strip_club(x.get("n", ""))
+        return {"n": name, "club": club, "c": x.get("c"), "spin": club == "SPI" or x.get("c") in tmt_ids,
+                "site": x.get("c") in tmt_ids, "pos": x["pos"], "semi": bool(x.get("semi"))}
+
+    past = []
+    medal = defaultdict(lambda: {"p1": 0, "p2": 0, "p3": 0, "name": ""})
+    for t in raw.get("past", []):
+        divs = []
+        for d in t.get("divs") or []:
+            pod = [person(x) for x in d["podio"]]
+            for x in pod:
+                if x["site"]:
+                    m = medal[x["c"]]
+                    m["name"] = x["n"]
+                    m["p%d" % min(x["pos"], 3)] += 1
+            divs.append({"div": d["div"].replace("División", "Div.").strip(), "res": d.get("res"),
+                         "partidos": d.get("partidos"), "podio": pod})
+        past.append({"code": t["code"], "name": t["name"], "date": t.get("date"), "loc": t.get("loc"),
+                     "liga": t.get("liga"), "sede": SEDES.get(t.get("liga"), t.get("loc")), "divs": divs})
+    upcoming = [{"code": u["code"], "name": u["name"], "date": u.get("date"), "loc": u.get("loc"),
+                 "liga": u.get("liga"), "sede": SEDES.get(u.get("liga"), u.get("loc")), "lugar": u.get("sede"),
+                 "dir": u.get("dir"), "divs": u.get("divs") or [], "precio": u.get("precio") or []}
+                for u in raw.get("upcoming", [])]
+    ranking = sorted(({"id": k, **v, "total": v["p1"] + v["p2"] + v["p3"]} for k, v in medal.items()),
+                     key=lambda r: (-r["p1"], -r["p2"], -r["p3"]))[:15]
+    return {"updated": raw.get("updated"), "ligas": raw.get("ligas"), "upcoming": upcoming, "past": past,
+            "ranking": ranking}
 
 
 def _count(it):

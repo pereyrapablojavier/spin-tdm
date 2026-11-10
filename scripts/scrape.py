@@ -213,8 +213,153 @@ def scrape_fet_player(fc):
             "clases": b.get("por_clase") or []}
 
 
+# ------------------------------------------------------- Torneos del club (TMT)
+# Ligas de TMT organizadas por SPIN (torneos.asp?filtroLiga=<id>)
+LIGAS = {273: "Spin TDM - Donic", 246: "Spin TDM - Sede Villa Crespo",
+         349: "Spin TDM DONIC - Sede Saavedra", 284: "Donic Spin TdM - Villa Pueyrredón"}
+MESES = {m: i + 1 for i, m in enumerate("enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split())}
+MESES["setiembre"] = 9
+
+
+def parse_fecha(s):
+    m = re.search(r"(\d{1,2}) de (\w+) de (\d{4})", (s or "").lower())
+    if not m or m.group(2) not in MESES:
+        return None
+    return f"{m.group(3)}-{MESES[m.group(2)]:02d}-{int(m.group(1)):02d}"
+
+
+def norm_ws(s):
+    return re.sub(r"\s+", " ", s or "").strip()
+
+
+def parse_liga_list(html, liga):
+    soup = BeautifulSoup(html, "html.parser")
+    out = []
+    for a in soup.select('a.linkNaranja[href*="torneos_ampliar"]'):
+        td = a.find_parent("td")
+        info = td.find("div") if td else None
+        it = norm_ws(info.get_text(" ")) if info else ""
+        out.append({"code": a["href"].split("=")[1], "name": fix_name(norm_ws(a.get_text(" "))),
+                    "date": parse_fecha(it), "loc": it.split(" - ")[-1].strip() if " - " in it else "", "liga": liga})
+    return out
+
+
+def parse_proximo(html):
+    t = page_text(html)
+    divs_txt = " ".join((m1(t, r"Divisiones:\n([\s\S]*?)\n(?:Inscripci|Sistema de juego)") or "").split("\n"))
+    divs = [{"div": m.group(1).lower(), "formato": m.group(2).strip(), "hora": m.group(3),
+             "mesas": int(m.group(4)), "cupos": int(m.group(5))}
+            for m in re.finditer(r"(\d+\w*)\s+divisi[oó]n\s*:\s*([^-]*?)\s*-\s*(\d{1,2}:\d{2})\s*hs\.?\s*(?:\.\s*)?(\d+)\s*mesas\s*\(Cupos:\s*(\d+)\)",
+                                 divs_txt, re.I)]
+    ptxt = " ".join((m1(t, r"Inscripción:\n([\s\S]*?)\n(?:Mesas|Pelotitas|Sistema)") or "").split("\n"))
+    precio = [norm_ws(re.sub(r"\.-\s*", " ", x)) for x in re.split(r"(?=\$)", ptxt) if x.strip()]
+    return {"date": parse_fecha(t), "divs": divs, "sede": m1(t, r"Sede:\n([^\n]+)"),
+            "dir": m1(t, r"Sede:\n[^\n]+\n([^\n]+)"), "precio": precio}
+
+
+def parse_podios(html):
+    """Podio por división a partir de partidos_xtorneo.asp: 1° y 2° de la final, 3°/4° de las semifinales."""
+    soup = BeautifulSoup(html, "html.parser")
+    rows = [r for r in soup.find_all("tr") if not r.find("table")]
+    T = lambda e: norm_ws(e.get_text(" "))  # noqa
+    cells = lambda r: r.find_all("td", recursive=False)  # noqa
+    divs, div, ph, i = {}, None, "", 0
+    while i < len(rows):
+        r = rows[i]
+        c = cells(r)
+        tx = T(r)
+        nx = T(rows[i + 1]) if i + 1 < len(rows) else ""
+        if len(c) <= 2 and tx and nx.startswith("Jugador"):
+            div, ph = tx, ""
+            divs.setdefault(div, {"semis": [], "final": None, "third": None, "n": 0})
+            i += 1
+            continue
+        if len(c) <= 2 and tx and len(tx) < 40 and not tx.startswith("Jugador"):
+            ph = tx
+            i += 1
+            continue
+        nc = cells(rows[i + 1]) if i + 1 < len(rows) else []
+        la = r.find("a", href=re.compile("jugadores_ficha"))
+        if len(c) == 10 and div and len(nc) == 10 and la:
+            A, B = [T(x) for x in c], [T(x) for x in nc]
+            lb = rows[i + 1].find("a", href=re.compile("jugadores_ficha"))
+            ca, cb = la["href"].split("=")[1], (lb["href"].split("=")[1] if lb else "")
+            wa = num(A[6]) > num(B[6])
+            W = {"n": A[0] if wa else B[0], "c": ca if wa else cb}
+            L = {"n": B[0] if wa else A[0], "c": cb if wa else ca}
+            D = divs[div]
+            D["n"] += 1
+            if re.match(r"^Final$", ph, re.I):
+                D["final"] = {"w": W, "l": L, "res": f"{A[6]}-{B[6]}" if wa else f"{B[6]}-{A[6]}"}
+            elif re.match(r"^Semi", ph, re.I):
+                D["semis"].append({"w": W, "l": L})
+            elif re.match(r"^(Tercer|3er)", ph, re.I):
+                D["third"] = {"w": W, "l": L}
+            i += 2
+            continue
+        i += 1
+    out = []
+    for k, D in divs.items():
+        if not D["final"]:
+            continue
+        p = [{"pos": 1, **D["final"]["w"]}, {"pos": 2, **D["final"]["l"]}]
+        if D["third"]:
+            p += [{"pos": 3, **D["third"]["w"]}, {"pos": 4, **D["third"]["l"]}]
+        else:
+            p += [{"pos": 3, **s["l"], "semi": True} for s in D["semis"]]
+        out.append({"div": k, "res": D["final"]["res"], "podio": p, "partidos": D["n"]})
+    return out
+
+
+def scrape_calendar():
+    """Próximos torneos organizados por SPIN y podios de los ya jugados (usa caché para no re-bajar los viejos)."""
+    path = DATA / "cal_raw.json"
+    prev = {}
+    if path.exists():
+        try:
+            prev = {t["code"]: t for t in json.loads(path.read_text()).get("past", []) if t.get("divs")}
+        except Exception:  # noqa
+            prev = {}
+    upcoming, past = [], []
+    for liga in LIGAS:
+        h = get(f"{TMT}/torneos.asp?filtroLiga={liga}")
+        if h:
+            past += parse_liga_list(h, liga)
+        h = get(f"{TMT}/torneos.asp?filtroLiga={liga}&prox=1")
+        for u in parse_liga_list(h, liga) if h else []:
+            d = get(f"{TMT}/torneos_ampliar.asp?codigo={u['code']}")
+            if d:
+                info = parse_proximo(d)
+                u.update({k: v for k, v in info.items() if v or k != "date"})
+            upcoming.append(u)
+    if not past and not upcoming:
+        print("Calendario: TMT no respondió; se conservan los datos anteriores.")
+        return
+
+    def fill(t):
+        if t["code"] in prev:
+            t["divs"] = prev[t["code"]]["divs"]
+        else:
+            h = get(f"{TMT}/partidos_xtorneo.asp?codigo={t['code']}")
+            t["divs"] = parse_podios(h) if h else []
+        return t
+
+    with ThreadPoolExecutor(3) as ex:
+        past = list(ex.map(fill, past))
+    past.sort(key=lambda t: t.get("date") or "", reverse=True)
+    upcoming.sort(key=lambda t: t.get("date") or "")
+    path.write_text(json.dumps({"updated": datetime.now(timezone.utc).isoformat(),
+                                "ligas": {str(k): v for k, v in LIGAS.items()},
+                                "upcoming": upcoming, "past": past}, ensure_ascii=False))
+    print("Calendario:", len(upcoming), "próximos,", len(past), "jugados")
+
+
 def main():
     DATA.mkdir(exist_ok=True)
+    try:
+        scrape_calendar()
+    except Exception as e:  # noqa
+        print("Calendario: error", e, file=sys.stderr)
     club_html = get(f"{TMT}/clubes_ampliar.asp?codigo={TMT_CLUB}")
     roster = parse_roster(club_html) if club_html else []
     if len(roster) < 10:

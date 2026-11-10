@@ -404,6 +404,124 @@
     </div>`;
   }
 
+  // ---------- calendario de torneos del club
+  const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const pd = (d) => { const [y, m, dd] = d.split("-").map(Number); return new Date(y, m - 1, dd); };
+  const longDate = (d) => { if (!d) return "Fecha a confirmar"; const x = pd(d); return `${DIAS[x.getDay()]} ${x.getDate()} de ${MESES[x.getMonth()]} ${x.getFullYear()}`; };
+  const todayISO = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
+  const calState = { year: "", sede: "", q: "", month: null };
+  const gcal = (u) => {
+    if (!u.date) return "";
+    const d = u.date.replace(/-/g, "");
+    const first = (u.divs[0] || {}).hora, start = first ? d + "T" + first.replace(":", "") + "00" : d;
+    const end = first ? d + "T230000" : d;
+    const details = `${u.divs.map((x) => `${x.div} división ${x.hora} hs`).join(" · ")}\n${TMT}/torneos_ampliar.asp?codigo=${u.code}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(u.name)}&dates=${start}/${end}&ctz=America/Argentina/Buenos_Aires&details=${encodeURIComponent(details)}&location=${encodeURIComponent((u.lugar || "") + ", " + (u.dir || ""))}`;
+  };
+  const podioHTML = (pod) => {
+    const label = (x) => x.pos === 1 ? "🥇 1°" : x.pos === 2 ? "🥈 2°" : x.pos === 4 ? "4°" : "🥉 3°";
+    return `<ol class="podio">${pod.map((x, i, arr) => `<li class="${x.spin ? "spin" : ""}"><span class="pp">${label(x)}</span>
+      <span class="ellipsis">${x.site ? plink(x.c, x.n) : esc(x.n)}${x.club ? ` <span class="muted small">(${esc(x.club)})</span>` : ""}</span></li>`).join("")}</ol>`;
+  };
+  function monthGrid(year, month, eventsByDay) {
+    const first = new Date(year, month, 1), days = new Date(year, month + 1, 0).getDate();
+    const t = todayISO();
+    let cells = "";
+    for (let i = 0; i < first.getDay(); i++) cells += `<span></span>`;
+    for (let d = 1; d <= days; d++) {
+      const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const ev = eventsByDay[iso];
+      cells += `<span class="day ${ev ? (ev.up ? "ev up" : "ev past") : ""} ${iso === t ? "today" : ""}" ${ev ? `data-go="${esc(ev.code)}" title="${esc(ev.name)}"` : ""}>${d}</span>`;
+    }
+    return `<div class="month"><div class="mhead">${MESES[month]} ${year}</div><div class="wdays">${["D", "L", "M", "M", "J", "V", "S"].map((x) => `<span>${x}</span>`).join("")}</div><div class="mdays">${cells}</div></div>`;
+  }
+  async function viewCalendario() {
+    $app.innerHTML = `<div class="loading">Cargando calendario…</div>`;
+    let C;
+    try { C = await getJSON("data/calendar.json"); } catch (e) { $app.innerHTML = `<div class="section"><h1>Calendario</h1><p class="muted">Todavía no hay datos del calendario.</p></div>`; return; }
+    const t = todayISO();
+    const up = C.upcoming.filter((u) => !u.date || u.date >= t).sort((a, b) => (a.date || "9").localeCompare(b.date || "9"));
+    const past = C.past.filter((p) => p.date && p.date < t);
+    const years = [...new Set(past.map((p) => p.date.slice(0, 4)))];
+    const sedes = [...new Set([...past, ...up].map((p) => p.sede).filter(Boolean))];
+    const ev = {};
+    past.forEach((p) => (ev[p.date] = { code: p.code, name: p.name, up: false }));
+    up.forEach((u) => u.date && (ev[u.date] = { code: u.code, name: u.name, up: true }));
+    const now = new Date();
+    if (calState.month == null) calState.month = { y: now.getFullYear(), m: now.getMonth() };
+    const drawMonths = () => {
+      const { y, m } = calState.month;
+      const n = new Date(y, m + 1, 1);
+      document.getElementById("months").innerHTML = monthGrid(y, m, ev) + monthGrid(n.getFullYear(), n.getMonth(), ev);
+    };
+    $app.innerHTML = `<div class="section"><h1>Calendario</h1>
+      <p class="muted" style="max-width:720px">Torneos organizados por SPIN en el circuito TMT (Villa Crespo, Villa Pueyrredón y Saavedra): próximas fechas con horarios y, de los ya jugados, el podio de cada división.</p>
+      <div class="grid g2 section">
+        <div class="card">
+          <div class="card-head"><h3>📅 Próximos torneos</h3><a class="small" target="_blank" rel="noopener" href="${TMT}/calendario.asp">Calendario TMT ↗</a></div>
+          ${up.length ? up.map((u) => { const x = u.date ? pd(u.date) : null; return `<div class="evento" id="t${esc(u.code)}">
+            <div class="fecha"><b>${x ? x.getDate() : "?"}</b><span>${x ? MESES[x.getMonth()].slice(0, 3) : ""}</span></div>
+            <div class="grow"><div class="pname">${esc(u.name)}</div>
+              <div class="small muted">${longDate(u.date)} · 📍 ${esc(u.lugar || u.sede || "")}${u.dir ? ` — ${esc(u.dir)}` : ""}</div>
+              ${u.divs.length ? `<div class="chips" style="margin-top:8px">${u.divs.map((d) => `<span class="badge c${esc(d.div)}" title="${esc(d.formato)} · ${d.mesas} mesas">${esc(d.div)} · ${esc(d.hora)} hs · ${d.cupos} cupos</span>`).join("")}</div>` : ""}
+              ${u.precio.length ? `<div class="small muted" style="margin-top:6px">💲 ${u.precio.map(esc).join(" · ")}</div>` : ""}
+              <div class="small" style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+                <a target="_blank" rel="noopener" href="${TMT}/jugadores_inscripciones.asp?torneo_cod=${esc(u.code)}">✍️ Inscribirme</a>
+                <a target="_blank" rel="noopener" href="${TMT}/torneos_ampliar.asp?codigo=${esc(u.code)}">Ver en TMT ↗</a>
+                ${u.date ? `<a target="_blank" rel="noopener" href="${gcal(u)}">➕ Agregar a mi calendario</a>` : ""}</div>
+            </div></div>`; }).join("") : `<p class="muted">No hay torneos del club anunciados por ahora. Revisá más adelante o seguí a <a href="${CLUB.instagram}" target="_blank" rel="noopener">@spintdmarg</a>.</p>`}
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>🗓️ Fechas</h3><div class="tabs"><button id="mPrev">‹</button><button id="mNext">›</button></div></div>
+          <div id="months" class="months"></div>
+          <p class="small muted"><span class="dot up"></span> próximo &nbsp; <span class="dot past"></span> jugado — tocá un día para ver el torneo.</p>
+        </div>
+      </div>
+
+      ${C.ranking.length ? `<div class="card section"><h3>🏆 Medallero SPIN en torneos del club</h3><p class="small muted">Podios de jugadores de SPIN en los torneos organizados por el club (3° incluye a ambos semifinalistas).</p>
+        <div class="tbl-wrap"><table><thead><tr><th>Jugador</th><th class="r">🥇</th><th class="r">🥈</th><th class="r">🥉</th><th class="r">Total</th></tr></thead><tbody>
+        ${C.ranking.slice(0, 10).map((r) => `<tr><td>${plink(r.id, r.name)}</td><td class="r num"><b>${r.p1}</b></td><td class="r num">${r.p2}</td><td class="r num">${r.p3}</td><td class="r num">${r.total}</td></tr>`).join("")}
+        </tbody></table></div></div>` : ""}
+
+      <h2 style="margin-top:28px">Torneos jugados</h2>
+      <div class="filters">
+        <input id="cq" type="search" placeholder="Buscar jugador en los podios…" value="${esc(calState.q)}">
+        <select id="cy"><option value="">Todos los años</option>${years.map((y) => `<option>${y}</option>`).join("")}</select>
+        <select id="cs"><option value="">Todas las sedes</option>${sedes.map((x) => `<option>${esc(x)}</option>`).join("")}</select>
+      </div>
+      <div id="pastList"></div>
+    </div>`;
+    drawMonths();
+    document.getElementById("mPrev").onclick = () => { const { y, m } = calState.month; const d = new Date(y, m - 1, 1); calState.month = { y: d.getFullYear(), m: d.getMonth() }; drawMonths(); };
+    document.getElementById("mNext").onclick = () => { const { y, m } = calState.month; const d = new Date(y, m + 1, 1); calState.month = { y: d.getFullYear(), m: d.getMonth() }; drawMonths(); };
+    document.getElementById("months").addEventListener("click", (e) => {
+      const d = e.target.closest("[data-go]"); if (!d) return;
+      const el = document.getElementById("t" + d.dataset.go);
+      if (el) { if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView({ behavior: "smooth", block: "start" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1600); }
+      else { calState.year = ""; calState.sede = ""; calState.q = ""; drawPast(); setTimeout(() => { const e2 = document.getElementById("t" + d.dataset.go); if (e2) { e2.open = true; e2.scrollIntoView({ behavior: "smooth" }); } }, 50); }
+    });
+    const drawPast = () => {
+      const q = calState.q.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+      const list = past.filter((p) => (!calState.year || p.date.startsWith(calState.year)) && (!calState.sede || p.sede === calState.sede) &&
+        (!q || p.divs.some((d) => d.podio.some((x) => x.n.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").includes(q)))));
+      const shown = list.slice(0, calState.year || calState.sede || q ? 200 : 20);
+      document.getElementById("pastList").innerHTML = shown.length ? shown.map((p, i) => {
+        const spinWins = p.divs.filter((d) => d.podio[0] && d.podio[0].spin).length;
+        return `<details class="tour" id="t${esc(p.code)}" ${i < 2 ? "open" : ""}><summary>
+          <span class="num muted small" style="width:78px">${fdate(p.date)}</span><span class="t">${esc(p.name)}</span>
+          <span class="small muted">📍 ${esc(p.sede || "")}</span>${spinWins ? `<span class="badge">🏆 ${spinWins} SPIN</span>` : ""}</summary>
+          <div class="body"><div class="grid podios">${p.divs.map((d) => `<div class="pcard"><div class="card-head"><b>${esc(d.div)}</b><span class="small muted">Final ${esc(d.res || "")}</span></div>${podioHTML(d.podio)}</div>`).join("") || `<p class="muted small">Sin resultados cargados.</p>`}</div>
+          <p class="small" style="margin:10px 0 0"><a target="_blank" rel="noopener" href="${TMT}/partidos_xtorneo.asp?codigo=${esc(p.code)}">Ver todos los partidos en TMT ↗</a></p></div></details>`;
+      }).join("") + (list.length > shown.length ? `<p class="small muted">Mostrando los últimos ${shown.length} de ${list.length}. Filtrá por año o sede para ver más.</p>` : "") : `<p class="muted">No hay torneos con esos filtros.</p>`;
+    };
+    document.getElementById("cy").value = calState.year; document.getElementById("cs").value = calState.sede;
+    document.getElementById("cy").onchange = (e) => { calState.year = e.target.value; drawPast(); };
+    document.getElementById("cs").onchange = (e) => { calState.sede = e.target.value; drawPast(); };
+    document.getElementById("cq").oninput = (e) => { calState.q = e.target.value; drawPast(); };
+    drawPast();
+  }
+
   // ---------- app instalable (PWA)
   let deferredPrompt = null;
   const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -484,8 +602,9 @@
     else if (r === "comparar") await viewComparar(new URLSearchParams(qs || ""));
     else if (r === "club") viewClub();
     else if (r === "app") viewApp();
+    else if (r === "calendario") await viewCalendario();
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 

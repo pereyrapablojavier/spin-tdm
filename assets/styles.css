@@ -177,3 +177,30 @@ svg text { font-family: Inter, system-ui, sans-serif; }
 .steps li { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; }
 .stepn { flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--celeste); color: #0E1B2A; font-weight: 800; display: grid; place-items: center; font-size: 13px; }
 @media (display-mode: standalone) { .topbar { padding-top: env(safe-area-inset-top); } }
+/* calendario */
+.evento { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--linea); }
+.evento:last-child { border-bottom: 0; }
+.evento .grow { flex: 1; min-width: 0; }
+.fecha { flex: 0 0 58px; height: 62px; border-radius: 12px; background: var(--tinta); color: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; border-top: 5px solid var(--celeste); }
+.fecha b { font: 800 26px/1 "Barlow Condensed", sans-serif; }
+.fecha span { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+.months { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 6px 0 10px; }
+@media (max-width: 480px) { .months { grid-template-columns: 1fr; } }
+.mhead { font: 700 16px "Barlow Condensed", sans-serif; text-transform: capitalize; margin-bottom: 6px; }
+.wdays, .mdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.wdays span { font-size: 11px; color: var(--gris); font-weight: 600; }
+.mdays .day { font-size: 13px; padding: 6px 0; border-radius: 8px; font-variant-numeric: tabular-nums; }
+.mdays .day.today { outline: 2px solid var(--tinta); }
+.mdays .day.ev { cursor: pointer; font-weight: 700; color: #fff; }
+.mdays .day.ev.up { background: var(--azul); }
+.mdays .day.ev.past { background: var(--celeste); color: #0E1B2A; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.dot.up { background: var(--azul); } .dot.past { background: var(--celeste); }
+.podios { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.pcard { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 12px; background: var(--bg); }
+.podio { list-style: none; margin: 6px 0 0; padding: 0; }
+.podio li { display: grid; grid-template-columns: 52px 1fr; gap: 6px; align-items: center; padding: 4px 0; font-size: 14px; }
+.podio li.spin { background: var(--celeste-3); border-radius: 8px; padding-left: 4px; }
+.podio .pp { font-weight: 700; font-size: 13px; white-space: nowrap; }
+.flash { animation: flash 1.6s ease; }
+@keyframes flash { 0%, 60% { box-shadow: 0 0 0 3px var(--celeste); } 100% { box-shadow: none; } }
