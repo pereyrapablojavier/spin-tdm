@@ -431,7 +431,7 @@
   // ----- club
   function viewClub() {
     const c = CLUB;
-    $app.innerHTML = `<div class="section"><h1>El club</h1>
+    $app.innerHTML = `<div class="section"><h1>Dónde estamos</h1>
       <p class="muted" style="max-width:720px">SPIN Tenis de Mesa tiene sedes en distintos barrios de CABA, con clases para todos los niveles y edades, escuelita para chicos y chicas, turnos de partidos libres y torneos del circuito TMT. Está afiliado a FETEMBA.</p>
       <div class="grid g3 section">${c.sedes.map((s) => `<div class="card"><h3>📍 ${esc(s.nombre)}</h3><p style="margin:0"><b>${esc(s.dir)}</b><br><span class="muted">${esc(s.lugar)}</span></p><p class="small" style="margin-bottom:0">${esc(s.dias)}</p>
         <p class="small" style="margin:6px 0 0"><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.dir + ", CABA, Argentina")}">Ver en el mapa ↗</a></p></div>`).join("")}</div>
@@ -833,7 +833,7 @@
     else if (r === "circuito") await viewCircuito();
     else if (r === "perfil") { await viewPerfil(); return; }
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "Dónde estamos", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 
