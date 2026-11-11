@@ -536,7 +536,8 @@
 
   // ---------- Liga de Equipos y Copa de Clubes (fetembaequipos.ar)
   const EQ_URL = "https://fetembaequipos.ar";
-  const eqState = { camp: null, open: {} };
+  const eqState = { camp: null, cat: "", open: {} };
+  const catShort = (c) => c.replace(/\s+Divisi[oó]n$/i, "");
   const resBadge = (e) => e.played ? `<span class="wl ${e.res}">${e.res}</span>` : `<span class="wl pend">–</span>`;
   const eqPlayer = (x) => x[2] ? plink(x[2], x[1]) : esc(x[1]);
   function encuentroHTML(e) {
@@ -561,8 +562,21 @@
     const title = tipo === "liga" ? "Liga de Equipos" : "Copa de Clubes";
     const intro = tipo === "liga" ? "Los equipos de SPIN en la Liga de Equipos de FETEMBA: posiciones por división, resultados de cada fecha y quién jugó cada partido."
       : "SPIN en la Copa de Clubes de FETEMBA: tabla de su zona, resultados de cada encuentro y el detalle de cada partido.";
+    const proxHTML = (list) => list.length ? `<div class="card section"><h3>📅 Próximos partidos</h3>${list.map((u) => { const x = u.fecha ? pd(u.fecha) : null; return `<div class="evento">
+        <div class="fecha"><b>${x ? x.getDate() : "?"}</b><span>${x ? MESES[x.getMonth()].slice(0, 3) : ""}</span></div>
+        <div class="grow"><div class="pname">${u.local ? `${esc(u.spin)} <span class="muted">vs</span> ${esc(u.rival)}` : `${esc(u.rival)} <span class="muted">vs</span> ${esc(u.spin)}`}</div>
+        <div class="small muted">${[longDate(u.fecha) + (u.hora ? " · " + u.hora + " hs" : ""), u.cat, u.zona, u.fecha_n].filter(Boolean).map(esc).join(" · ")}</div>
+        <div class="small muted">📍 ${esc(u.sede || "")}${u.mesa ? " · Mesa " + esc(u.mesa) : ""}</div></div></div>`; }).join("")}</div>` : "";
     const draw = () => {
-      const comps = all.filter((c) => c.camp === eqState.camp);
+      const campComps = all.filter((c) => c.camp === eqState.camp);
+      // filtro por división (solo Liga)
+      const cats = tipo === "liga" ? [...new Set(campComps.map((c) => c.cat).filter(Boolean))] : [];
+      if (!cats.includes(eqState.cat)) eqState.cat = "";
+      const comps = eqState.cat ? campComps.filter((c) => c.cat === eqState.cat) : campComps;
+      const cf = document.getElementById("eqCats");
+      cf.innerHTML = cats.length > 1 ? `<span class="small muted">División:</span> <button class="chip ${eqState.cat ? "" : "on"}" data-cat="">Todas</button>${cats.map((k) => `<button class="chip ${k === eqState.cat ? "on" : ""}" data-cat="${esc(k)}">${esc(catShort(k))}</button>`).join("")}` : "";
+      cf.hidden = cats.length < 2;
+      document.getElementById("eqProx").innerHTML = proxHTML(eqState.cat ? prox.filter((u) => u.cat === eqState.cat) : prox);
       // jugadores (calculado sobre la competencia elegida)
       const ps = {};
       comps.forEach((c) => c.encuentros.forEach((e) => e.partidos.forEach((p) => { if (p.w == null) return; p.spin.forEach((x) => {
@@ -574,7 +588,7 @@
       const lideres = comps.filter((c) => c.pos === 1).length;
       document.getElementById("eqBody").innerHTML = `
         <div class="grid tiles section">
-          ${tile(teams, tipo === "liga" ? "Equipos de SPIN" : "Participaciones")}
+          ${tile(teams, tipo === "liga" ? (eqState.cat ? `Equipos en ${catShort(eqState.cat)}` : "Equipos de SPIN") : "Participaciones")}
           ${tile(`${tw}-${tl}`, "Encuentros G-P", `${pct(tw, tw + tl) ?? "–"}% ganados`)}
           ${tile(lideres, "Zonas lideradas", "1° en la tabla")}
           ${tile(jug.length, "Jugadores que sumaron")}
@@ -589,7 +603,7 @@
               ${c.tabla.map((r) => `<tr class="${/^spin tdm/i.test(r.club) ? "spinrow" : ""}"><td class="num">${r.pos}</td><td>${esc(r.club)}</td><td class="r num"><b>${r.pts}</b></td><td class="r num">${r.pj}</td><td class="r num">${r.pg}</td><td class="r num">${r.pp}</td><td class="r num">${signed(r.dif)}</td></tr>`).join("")}
             </tbody></table></div></details>` : ""}
             <div style="margin-top:8px">${c.encuentros.map(encuentroHTML).join("")}</div></div>`; }).join("")}</div>
-        ${jug.length ? `<div class="card section"><h3>👥 Jugadores de SPIN</h3><p class="small muted">Partidos individuales y de dobles en ${esc(camps.find(([k]) => k === eqState.camp)?.[1] || "")}.</p>
+        ${jug.length ? `<div class="card section"><h3>👥 Jugadores de SPIN</h3><p class="small muted">Partidos individuales y de dobles en ${esc(camps.find(([k]) => k === eqState.camp)?.[1] || "")}${eqState.cat ? " · " + esc(eqState.cat) : ""}.</p>
           <div class="tbl-wrap"><table><thead><tr><th>Jugador</th><th class="r">Singles</th><th class="r">Dobles</th><th class="r">Total</th><th class="r">%</th><th class="r">Encuentros</th></tr></thead><tbody>
           ${jug.map((j) => `<tr><td>${j.id ? plink(j.id, j.name) : esc(j.name)}</td><td class="r num">${j.s_w}-${j.s_l}</td><td class="r num">${j.d_w}-${j.d_l}</td><td class="r num"><b>${j.w}-${j.l}</b></td><td class="r num">${pct(j.w, j.w + j.l) ?? "–"}%</td><td class="r num">${j.enc}</td></tr>`).join("")}
           </tbody></table></div></div>` : ""}`;
@@ -598,17 +612,15 @@
     };
     $app.innerHTML = `<div class="section"><h1>${title}</h1>
       <p class="muted" style="max-width:720px">${intro}</p>
-      ${prox.length ? `<div class="card section"><h3>📅 Próximos partidos</h3>${prox.map((u) => { const x = u.fecha ? pd(u.fecha) : null; return `<div class="evento">
-        <div class="fecha"><b>${x ? x.getDate() : "?"}</b><span>${x ? MESES[x.getMonth()].slice(0, 3) : ""}</span></div>
-        <div class="grow"><div class="pname">${u.local ? `${esc(u.spin)} <span class="muted">vs</span> ${esc(u.rival)}` : `${esc(u.rival)} <span class="muted">vs</span> ${esc(u.spin)}`}</div>
-        <div class="small muted">${[longDate(u.fecha) + (u.hora ? " · " + u.hora + " hs" : ""), u.cat, u.zona, u.fecha_n].filter(Boolean).map(esc).join(" · ")}</div>
-        <div class="small muted">📍 ${esc(u.sede || "")}${u.mesa ? " · Mesa " + esc(u.mesa) : ""}</div></div></div>`; }).join("")}</div>` : ""}
+      <div id="eqProx"></div>
       ${camps.length > 1 ? `<div class="chips" id="eqCamps">${camps.map(([k, n]) => `<button class="chip" data-c="${k}">${esc(n)}</button>`).join("")}</div>` : ""}
+      <div class="chips eqcats" id="eqCats" hidden></div>
       <div id="eqBody"></div>
       <p class="small muted" style="margin-top:16px">Fuente: <a href="${EQ_URL}" target="_blank" rel="noopener">FETEMBA Equipos ↗</a>. Los jugadores con link tienen ficha en este sitio.</p></div>`;
     const cc = document.getElementById("eqCamps");
     cc && cc.addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { eqState.camp = +b.dataset.c; draw(); } });
-    if (!all.length) { document.getElementById("eqBody").innerHTML = `<p class="muted">SPIN no tiene equipos cargados en esta competencia.</p>`; return; }
+    document.getElementById("eqCats").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { eqState.cat = b.dataset.cat; draw(); } });
+    if (!all.length) { document.getElementById("eqProx").innerHTML = proxHTML(prox); document.getElementById("eqBody").innerHTML = `<p class="muted">SPIN no tiene equipos cargados en esta competencia.</p>`; return; }
     draw();
   }
 

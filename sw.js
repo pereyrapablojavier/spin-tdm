@@ -1,13 +1,13 @@
 /* Service worker de SPIN Tenis de Mesa: permite instalar la app y usarla sin conexión.
    - Archivos del sitio (HTML, CSS, JS, íconos): se sirven rápido desde la caché y se actualizan en segundo plano.
    - Datos (data/*.json): primero se buscan en la red para mostrar siempre lo último; si no hay conexión, se usa la caché. */
-const VERSION = "spin-v5";
+const VERSION = "spin-v6";
 const CORE = [
   "./",
   "index.html",
   "manifest.webmanifest",
-  "assets/styles.css?v=5",
-  "assets/app.js?v=5",
+  "assets/styles.css?v=6",
+  "assets/app.js?v=6",
   "assets/escudo.png",
   "assets/icons/icon-192.png",
   "assets/icons/icon-512.png",
