@@ -18,9 +18,9 @@ Sitio web del **Club SPIN Tenis de Mesa** (Villa Crespo · Villa Pueyrredón · 
 | `.github/workflows/` | GitHub Action que actualiza los datos (lunes y jueves). GitHub Pages publica desde la rama `main`. |
 
 Para actualizar a mano: pestaña **Actions → "Actualizar datos" → Run workflow** y marcar qué actualizar
-(jugadores, calendario y/o Liga/Copa). La corrida automática actualiza todo.
+(jugadores, calendario, Liga/Copa y/o Grand Slam y Super Series). La corrida automática actualiza todo.
 
-`scrape.py` también acepta partes sueltas: `python scripts/scrape.py calendario` o `python scripts/scrape.py jugadores`.
+`scrape.py` también acepta partes sueltas: `calendario`, `jugadores` o `circuito` (Grand Slam y Super Series; solo vuelve a bajar todo si FETEMBA cargó un torneo nuevo o más partidos).
 
 ### Probar localmente
 
