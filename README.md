@@ -31,4 +31,8 @@ python scripts/build.py
 python -m http.server -d _site 8000
 ```
 
-Los datos son públicos y pertenecen a sus respectivas fuentes. Instagram del club: [@spintdmarg](https://www.instagram.com/spintdmarg/).
+## Aviso
+
+La información que muestra el sitio es **pública** y se consulta a [TMT](https://www.tenisdemesaparatodos.com/), [FETEMBA](https://fetemba.bsweb.com.ar/) y [FETEMBA Equipos](https://fetembaequipos.ar/). Los datos **no nos pertenecen**: son propiedad de sus respectivas fuentes. El sitio no es oficial de TMT ni de FETEMBA. Instagram del club: [@spintdmarg](https://www.instagram.com/spintdmarg/).
+
+© 2026 Pablo Javier Pereyra — diseño y desarrollo del sitio.

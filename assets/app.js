@@ -814,6 +814,28 @@
     draw("");
   }
 
+  // ---------- aviso legal
+  function viewLegal() {
+    $app.innerHTML = `<div class="section legal"><h1>Aviso legal</h1>
+      <div class="card section"><h3>De dónde sale la información</h3>
+        <p>Todo lo que se muestra en este sitio (jugadores, ratings, rankings, categorías, torneos, partidos, resultados, tablas y podios) es <b>información pública</b> que se consulta a estas fuentes:</p>
+        <ul>
+          <li><a href="https://www.tenisdemesaparatodos.com/" target="_blank" rel="noopener">Tenis de Mesa para Todos (TMT)</a>: plantel, ratings, rankings y torneos del circuito TMT.</li>
+          <li><a href="https://fetemba.bsweb.com.ar/" target="_blank" rel="noopener">FETEMBA</a>: rating y ranking federado, historial, palmarés, Grand Slam y Super Series.</li>
+          <li><a href="https://fetembaequipos.ar/" target="_blank" rel="noopener">FETEMBA Equipos</a>: Liga de Equipos y Copa de Clubes.</li>
+        </ul>
+        <p>Los datos se actualizan automáticamente dos veces por semana, así que puede haber diferencias o demoras respecto de las fuentes.</p></div>
+      <div class="card section"><h3>A quién pertenecen los datos</h3>
+        <p>La información y los datos <b>no nos pertenecen</b>: son propiedad de TMT y de FETEMBA, según corresponda. Este sitio solo los reúne y los presenta para los jugadores del Club SPIN. Ante cualquier diferencia, valen siempre los datos publicados por cada fuente.</p>
+        <p>Este sitio <b>no es oficial</b> de TMT ni de FETEMBA, y no tiene relación con esas organizaciones más allá de consultar su información pública.</p></div>
+      <div class="card section"><h3>Privacidad</h3>
+        <p>No se publican edades ni fechas de nacimiento de los jugadores. El sitio no pide registro ni guarda datos personales: los jugadores que guardás en <a href="#/perfil">Mi perfil</a> quedan solo en tu celular o computadora.</p>
+        <p>Si querés que se corrija o se quite algún dato, escribinos por Instagram a <a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a>.</p></div>
+      <div class="card section"><h3>Derechos</h3>
+        <p>© 2026 Pablo Javier Pereyra. El diseño y el desarrollo del sitio son de su autor. Los datos, nombres y resultados pertenecen a sus respectivas fuentes, y el escudo, al Club SPIN Tenis de Mesa.</p></div>
+    </div>`;
+  }
+
   // ---------- router
   async function route() {
     killCharts();
@@ -838,8 +860,9 @@
     else if (r === "copa") await viewEquipos("copa");
     else if (r === "circuito") await viewCircuito();
     else if (r === "perfil") { await viewPerfil(); return; }
+    else if (r === "legal") viewLegal();
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "Dónde estamos", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "Dónde estamos", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series", legal: "Aviso legal" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 
