@@ -25,6 +25,17 @@
   const getJSON = async (u) => { if (cache[u]) return cache[u]; const r = await fetch(u); if (!r.ok) throw new Error(u); return (cache[u] = await r.json()); };
   const player = async (id) => { const all = await getJSON("data/players.json"); if (!all[id]) throw new Error(id); return all[id]; };
   const byId = (id) => CLUB.players.find((p) => p.id === id);
+  // ----- favoritos: quedan guardados solo en este dispositivo (localStorage)
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } },
+  };
+  const favs = {
+    list: () => (store.get("spin.favs", []) || []).filter((id) => typeof id === "string"),
+    has: (id) => favs.list().includes(id),
+    toggle(id) { const l = favs.list(); const i = l.indexOf(id); if (i >= 0) l.splice(i, 1); else l.push(id); store.set("spin.favs", l); return i < 0; },
+  };
+  const favLabel = (on) => (on ? "★ En Mi perfil" : "☆ Guardar en Mi perfil");
   const spark = (vals, w = 90, h = 26) => {
     if (!vals || vals.length < 2) return "";
     const mn = Math.min(...vals), mx = Math.max(...vals), r = mx - mn || 1;
@@ -183,7 +194,7 @@
       });
       tb.innerHTML = rows.map((p) => `<tr>
         <td class="r num muted">${p.clubPos ?? ""}</td>
-        <td>${plink(p.id, p.name)} ${p.src.length === 1 && p.src[0] === "fet" ? srcBadges(p.src) : ""}</td>
+        <td>${favs.has(p.id) ? `<span class="favstar" title="En Mi perfil">★</span> ` : ""}${plink(p.id, p.name)} ${p.src.length === 1 && p.src[0] === "fet" ? srcBadges(p.src) : ""}</td>
         <td>${catBadge(p.cat)}</td><td class="r num"><b>${fmt(p.rating)}</b></td><td class="r num">${fmt(p.rankPos)}</td>
         <td class="r num">${p.wr != null ? p.wr + "%" : "–"}</td><td class="r num">${p.wr12 != null ? p.wr12 + "%" : "–"}</td>
         <td class="r num">${fmt(p.pj)}</td><td class="r num">${fmt(p.pod)}</td><td class="r num">${signed(p.delta)}</td>
@@ -205,7 +216,7 @@
   }
 
   // ----- jugador
-  async function viewJugador(id) {
+  async function viewJugador(id, perfil = null) {
     $app.innerHTML = `<div class="loading">Cargando jugador…</div>`;
     let p;
     try { p = await player(id); } catch (e) { $app.innerHTML = `<div class="section"><h2>Jugador no encontrado</h2><a href="#/jugadores">Volver</a></div>`; return; }
@@ -223,7 +234,8 @@
     };
     $app.innerHTML = `
     <div class="section">
-      <a href="#/jugadores" class="small">← Jugadores</a>
+      ${perfil ? `<h1 class="ptitle">⭐ Mi perfil</h1>${perfil.length > 1 ? `<div class="chips" id="pfChips">${perfil.map((x) => `<button class="chip ${x === id ? "on" : ""}" data-id="${esc(x)}">${esc(niceName(byId(x).name))}</button>`).join("")}</div>` : ""}`
+        : `<a href="#/jugadores" class="small">← Jugadores</a>`}
       <div class="phead" style="margin-top:10px">
         <div class="avatar">${esc(initials(p.name))}</div>
         <div style="flex:1;min-width:220px">
@@ -235,6 +247,7 @@
           ${t ? `<a class="btn ghost" target="_blank" rel="noopener" href="${TMT}/jugadores_ficha.asp?codigo=${esc(t.code)}">Ficha TMT ↗</a>` : ""}
           ${f ? `<a class="btn ghost" target="_blank" rel="noopener" href="${FET}/jugadores/${esc(f.id)}">Ficha FETEMBA ↗</a>` : ""}
           <a class="btn" href="#/comparar?a=${esc(id)}">Comparar</a>
+          <button class="btn ghost favbtn ${favs.has(id) ? "on" : ""}" id="favBtn">${favLabel(favs.has(id))}</button>
         </div>
       </div>
     </div>
@@ -317,6 +330,13 @@
         ${Object.entries(by).map(([k, b]) => `<tr><td><a href="#/${b.tipo}">${esc(k)}</a></td><td class="small">${[...b.teams].map(esc).join("<br>")}</td><td class="r num">${b.s_w}-${b.s_l}</td><td class="r num">${b.d_w}-${b.d_l}</td></tr>`).join("")}
         </tbody></table></div></div>`;
     }).catch(() => {});
+    document.getElementById("favBtn").addEventListener("click", (e) => {
+      const on = favs.toggle(id);
+      if (perfil && !on) { viewPerfil(); return; }
+      e.currentTarget.textContent = favLabel(on); e.currentTarget.classList.toggle("on", on);
+    });
+    const pfc = document.getElementById("pfChips");
+    pfc && pfc.addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { store.set("spin.perfilSel", b.dataset.id); viewPerfil(); } });
     if (f) getJSON("data/circuito.json").then((C) => {
       const box = document.getElementById("circPlayer"); if (!box) return;
       const rows = C.eventos.flatMap((e) => e.part.filter((q) => q.fid === String(f.id)).map((q) => ({ ...q, e })));
@@ -411,7 +431,7 @@
   // ----- club
   function viewClub() {
     const c = CLUB;
-    $app.innerHTML = `<div class="section"><h1>El club</h1>
+    $app.innerHTML = `<div class="section"><h1>Dónde estamos</h1>
       <p class="muted" style="max-width:720px">SPIN Tenis de Mesa tiene sedes en distintos barrios de CABA, con clases para todos los niveles y edades, escuelita para chicos y chicas, turnos de partidos libres y torneos del circuito TMT. Está afiliado a FETEMBA.</p>
       <div class="grid g3 section">${c.sedes.map((s) => `<div class="card"><h3>📍 ${esc(s.nombre)}</h3><p style="margin:0"><b>${esc(s.dir)}</b><br><span class="muted">${esc(s.lugar)}</span></p><p class="small" style="margin-bottom:0">${esc(s.dias)}</p>
         <p class="small" style="margin:6px 0 0"><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.dir + ", CABA, Argentina")}">Ver en el mapa ↗</a></p></div>`).join("")}</div>
@@ -758,6 +778,36 @@
     });
   }
 
+  // ---------- Mi perfil (jugadores guardados en este dispositivo)
+  async function viewPerfil() {
+    killCharts();
+    const ids = favs.list().filter((id) => byId(id));
+    if (ids.length) {
+      let sel = store.get("spin.perfilSel", null);
+      if (!ids.includes(sel)) sel = ids[0];
+      document.title = `Mi perfil · ${niceName(byId(sel).name)} · SPIN`;
+      await viewJugador(sel, ids);
+      return;
+    }
+    document.title = "Mi perfil · SPIN Tenis de Mesa";
+    $app.innerHTML = `<div class="section"><h1>⭐ Mi perfil</h1>
+      <p class="muted" style="max-width:640px">Guardá tu ficha (o la de los jugadores que seguís) y la vas a tener siempre a mano acá. Buscá un jugador y tocá <b>☆ Guardar</b>, o entrá a cualquier ficha y tocá <b>☆ Guardar en Mi perfil</b>.</p>
+      <div class="filters"><input id="pfQ" type="search" placeholder="Buscar jugador…" autocomplete="off"></div>
+      <ul class="list card" id="pfRes" style="margin-top:12px"></ul>
+      <p class="small muted">Se guarda solo en este celular o computadora, no hace falta registrarse. Si borrás los datos del navegador, se pierde.</p></div>`;
+    const norm = (x) => x.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    const res = document.getElementById("pfRes");
+    const draw = (q) => {
+      const n = norm(q.trim());
+      const rows = n.length < 2 ? [] : CLUB.players.filter((p) => norm(p.name).includes(n) || norm(niceName(p.name)).includes(n)).slice(0, 10);
+      res.hidden = !rows.length;
+      res.innerHTML = rows.map((p) => `<li><span class="grow">${plink(p.id, niceName(p.name))} <span class="small muted">${p.cat ? "Cat. " + esc(p.cat) : ""}</span></span><button class="btn" data-id="${esc(p.id)}">☆ Guardar</button></li>`).join("");
+    };
+    document.getElementById("pfQ").addEventListener("input", (e) => draw(e.target.value));
+    res.addEventListener("click", (e) => { const b = e.target.closest("button[data-id]"); if (b) { favs.toggle(b.dataset.id); store.set("spin.perfilSel", b.dataset.id); viewPerfil(); } });
+    draw("");
+  }
+
   // ---------- router
   async function route() {
     killCharts();
@@ -767,6 +817,9 @@
     const r = parts[0] || "inicio";
     document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("on", a.dataset.r === (r === "jugador" ? "jugadores" : r)));
     document.querySelector(".nav").classList.remove("open");
+    const dd = document.querySelector(".nav-dd");
+    dd.classList.remove("open"); dd.querySelector(".nav-ddb").setAttribute("aria-expanded", "false");
+    dd.classList.toggle("on", !!dd.querySelector("a.on"));
     window.scrollTo(0, 0);
     if (r === "jugadores") viewJugadores();
     else if (r === "jugador") await viewJugador(decodeURIComponent(parts[1] || ""));
@@ -778,11 +831,19 @@
     else if (r === "liga") await viewEquipos("liga");
     else if (r === "copa") await viewEquipos("copa");
     else if (r === "circuito") await viewCircuito();
+    else if (r === "perfil") { await viewPerfil(); return; }
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "Dónde estamos", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 
+  // menú desplegable "Mi Club": en la compu se abre al tocar (o pasar el mouse); en el menú ☰ queda siempre abierto
+  const navDD = document.querySelector(".nav-dd");
+  navDD.querySelector(".nav-ddb").addEventListener("click", (e) => {
+    const open = navDD.classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", open);
+  });
+  document.addEventListener("click", (e) => { if (!navDD.contains(e.target)) { navDD.classList.remove("open"); navDD.querySelector(".nav-ddb").setAttribute("aria-expanded", "false"); } });
+  navDD.addEventListener("keydown", (e) => { if (e.key === "Escape") { navDD.classList.remove("open"); navDD.querySelector(".nav-ddb").focus(); } });
   document.querySelector(".menu-btn").addEventListener("click", (e) => {
     const n = document.querySelector(".nav"); n.classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", n.classList.contains("open"));
   });
