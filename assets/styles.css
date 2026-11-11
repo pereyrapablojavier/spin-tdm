@@ -66,7 +66,7 @@ h3 { font-size: 20px; }
 .hero img { width: 96px; height: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,.2)); }
 .hero p { margin: 0; font-size: 16px; color: #0E1B2A; opacity: .85; }
 @media (min-width: 1180px) { .hero { margin: 0 calc(590px - 50vw); padding-left: calc(50vw - 574px); padding-right: calc(50vw - 574px); } }
-@media (max-width: 560px) { .hero-in { flex-direction: column; align-items: flex-start; } .hero img { width: 72px; } }
+@media (max-width: 560px) { .hero { padding: 24px 16px 22px; } .hero-in { gap: 14px; } .hero img { width: 60px; flex-shrink: 0; } .hero h1 { font-size: 32px; margin-bottom: 4px; } .hero p { font-size: 14px; } }
 
 /* grid & cards */
 .section { margin: 28px 0; }
@@ -273,4 +273,11 @@ details.circ .fecha span { font-size: 10px; letter-spacing: .5px; }
   .nav-ddb { pointer-events: none; text-align: left; padding: 10px 10px 2px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--celeste-2) !important; background: none !important; }
   .nav-ddb .caret { display: none; }
   .nav-ddm { display: flex; position: static; background: none; border: 0; box-shadow: none; padding: 0; min-width: 0; gap: 4px; }
+}
+/* pantallas muy angostas (320–375px): que la barra no se pase del ancho */
+@media (max-width: 375px) {
+  .topbar-in { gap: 8px; }
+  .brand { gap: 8px; } .brand img { width: 34px; height: auto; }
+  .brand b { font-size: 22px; letter-spacing: 1.5px; } .brand small { font-size: 9.5px; letter-spacing: 1.2px; }
+  .install-btn { padding: 6px 9px; font-size: 11.5px; }
 }
