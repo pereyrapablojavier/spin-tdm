@@ -220,7 +220,7 @@ details.enc summary .t { flex: 1 1 200px; font-weight: 400; font-size: 14px; }
 .score { font-size: 16px; }
 .wl.pend { background: var(--linea); color: var(--gris); }
 .nav a { padding: 8px 8px; font-size: 13.5px; white-space: nowrap; }
-@media (max-width: 1280px) {
+@media (max-width: 1080px) {
   .menu-btn { display: block; }
   .nav { display: none; position: absolute; top: 68px; left: 0; right: 0; background: #0E1B2A; flex-direction: column; padding: 8px 16px 16px; margin-left: 0 !important; }
   .nav.open { display: flex; }
@@ -241,7 +241,7 @@ details.circ .fecha span { font-size: 10px; letter-spacing: .5px; }
 
 /* separadores del menú: una línea fina en la compu; título de grupo en el menú ☰ */
 .nav-g { align-self: center; width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, .18); font-size: 0; }
-@media (max-width: 1280px) {
+@media (max-width: 1080px) {
   .nav-g { align-self: stretch; text-align: left; width: auto; height: auto; margin: 10px 0 2px; background: none; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--celeste-2); padding: 0 10px; }
   .nav-g:empty { height: 1px; margin: 8px 10px; background: rgba(255, 255, 255, .12); padding: 0; }
 }
@@ -255,3 +255,22 @@ details.circ .fecha span { font-size: 10px; letter-spacing: .5px; }
 .ptitle { font-size: clamp(26px, 5vw, 36px); margin-bottom: 10px; }
 #pfRes[hidden] { display: none; }
 #pfRes { padding: 4px 14px; }
+
+/* menú desplegable "Mi Club" */
+.nav-dd { position: relative; display: flex; }
+.nav-ddb { background: none; border: 0; cursor: pointer; color: #DCE9F5; padding: 8px 8px; border-radius: 8px; font: 600 13.5px Inter, system-ui, sans-serif; white-space: nowrap; }
+.nav-ddb:hover { background: rgba(255, 255, 255, .08); }
+.nav-dd.on .nav-ddb { background: var(--celeste); color: #0E1B2A; }
+.nav-ddb .caret { font-size: 10px; margin-left: 2px; display: inline-block; transition: transform .15s; }
+.nav-dd.open .caret { transform: rotate(180deg); }
+.nav-ddm { display: none; position: absolute; top: calc(100% + 6px); left: 0; min-width: 170px; background: #0E1B2A; border: 1px solid rgba(255, 255, 255, .12); border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); flex-direction: column; z-index: 50; }
+.nav-ddm::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+.nav-dd.open .nav-ddm { display: flex; }
+@media (hover: hover) and (min-width: 1081px) { .nav-dd:hover .nav-ddm { display: flex; } }
+.nav-ddm a { display: block; }
+@media (max-width: 1080px) {
+  .nav-dd { flex-direction: column; }
+  .nav-ddb { pointer-events: none; text-align: left; padding: 10px 10px 2px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--celeste-2) !important; background: none !important; }
+  .nav-ddb .caret { display: none; }
+  .nav-ddm { display: flex; position: static; background: none; border: 0; box-shadow: none; padding: 0; min-width: 0; gap: 4px; }
+}

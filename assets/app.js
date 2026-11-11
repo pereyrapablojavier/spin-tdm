@@ -817,6 +817,9 @@
     const r = parts[0] || "inicio";
     document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("on", a.dataset.r === (r === "jugador" ? "jugadores" : r)));
     document.querySelector(".nav").classList.remove("open");
+    const dd = document.querySelector(".nav-dd");
+    dd.classList.remove("open"); dd.querySelector(".nav-ddb").setAttribute("aria-expanded", "false");
+    dd.classList.toggle("on", !!dd.querySelector("a.on"));
     window.scrollTo(0, 0);
     if (r === "jugadores") viewJugadores();
     else if (r === "jugador") await viewJugador(decodeURIComponent(parts[1] || ""));
@@ -834,6 +837,13 @@
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 
+  // menú desplegable "Mi Club": en la compu se abre al tocar (o pasar el mouse); en el menú ☰ queda siempre abierto
+  const navDD = document.querySelector(".nav-dd");
+  navDD.querySelector(".nav-ddb").addEventListener("click", (e) => {
+    const open = navDD.classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", open);
+  });
+  document.addEventListener("click", (e) => { if (!navDD.contains(e.target)) { navDD.classList.remove("open"); navDD.querySelector(".nav-ddb").setAttribute("aria-expanded", "false"); } });
+  navDD.addEventListener("keydown", (e) => { if (e.key === "Escape") { navDD.classList.remove("open"); navDD.querySelector(".nav-ddb").focus(); } });
   document.querySelector(".menu-btn").addEventListener("click", (e) => {
     const n = document.querySelector(".nav"); n.classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded", n.classList.contains("open"));
   });
