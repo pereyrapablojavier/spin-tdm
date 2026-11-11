@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       jugadores:
-        description: "Jugadores (TMT + FETEMBA: ratings, rankings, fichas, Grand Slam y Super Series)"
+        description: "Jugadores (TMT + FETEMBA: ratings, rankings, fichas)"
         type: boolean
         default: true
       calendario:
@@ -16,10 +16,14 @@ on:
         description: "Liga de Equipos y Copa de Clubes (fetembaequipos.ar)"
         type: boolean
         default: true
+      circuito:
+        description: "Grand Slam y Super Series (FETEMBA; solo baja si hay novedades)"
+        type: boolean
+        default: true
   # Automático: actualiza todo.
   schedule:
-    # Lunes y jueves 09:17 UTC (06:17 en Buenos Aires)
-    - cron: "17 9 * * 1,4"
+    # Lunes y jueves 09:00 UTC = 06:00 en Argentina (GitHub puede demorarlo unos minutos)
+    - cron: "0 9 * * 1,4"
 
 permissions:
   contents: write
@@ -36,6 +40,7 @@ jobs:
       JUGADORES: ${{ github.event_name != 'workflow_dispatch' || inputs.jugadores }}
       CALENDARIO: ${{ github.event_name != 'workflow_dispatch' || inputs.calendario }}
       EQUIPOS: ${{ github.event_name != 'workflow_dispatch' || inputs.equipos }}
+      CIRCUITO: ${{ github.event_name != 'workflow_dispatch' || inputs.circuito }}
     steps:
       - name: Qué se actualiza
         run: |
@@ -46,8 +51,9 @@ jobs:
             echo "| Jugadores (TMT + FETEMBA) | $([ "$JUGADORES" = true ] && echo ✅ || echo —) |"
             echo "| Calendario de torneos | $([ "$CALENDARIO" = true ] && echo ✅ || echo —) |"
             echo "| Liga de Equipos y Copa de Clubes | $([ "$EQUIPOS" = true ] && echo ✅ || echo —) |"
+            echo "| Grand Slam y Super Series | $([ "$CIRCUITO" = true ] && echo ✅ || echo —) |"
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          if [ "$JUGADORES" != true ] && [ "$CALENDARIO" != true ] && [ "$EQUIPOS" != true ]; then
+          if [ "$JUGADORES" != true ] && [ "$CALENDARIO" != true ] && [ "$EQUIPOS" != true ] && [ "$CIRCUITO" != true ]; then
             echo "::error::No elegiste nada para actualizar."
             exit 1
           fi
@@ -62,6 +68,9 @@ jobs:
       - name: Jugadores (TMT + FETEMBA)
         if: env.JUGADORES == 'true'
         run: python scripts/scrape.py jugadores
+      - name: Grand Slam y Super Series (FETEMBA)
+        if: ${{ !cancelled() && env.CIRCUITO == 'true' }}
+        run: python scripts/scrape.py circuito
       - name: Liga de Equipos y Copa de Clubes
         if: env.EQUIPOS == 'true'
         continue-on-error: true
@@ -80,6 +89,7 @@ jobs:
           [ "$JUGADORES" = true ] && partes+=(jugadores)
           [ "$CALENDARIO" = true ] && partes+=(calendario)
           [ "$EQUIPOS" = true ] && partes+=(equipos)
+          [ "$CIRCUITO" = true ] && partes+=("grand slam y super series")
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/

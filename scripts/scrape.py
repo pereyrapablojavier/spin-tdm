@@ -4,9 +4,10 @@ Genera:
   data/tmt_raw.json  - jugadores del club en Tenis de Mesa para Todos (TMT)
   data/fet_raw.json  - datos del club y sus jugadores en FETEMBA (incluye Grand Slam y Super Series)
 
-Uso:  python scripts/scrape.py                 # todo (calendario + jugadores)
+Uso:  python scripts/scrape.py                 # todo (calendario + jugadores + circuito)
       python scripts/scrape.py calendario      # solo el calendario de torneos del club
       python scripts/scrape.py jugadores       # solo jugadores (TMT + FETEMBA)
+      python scripts/scrape.py circuito        # solo Grand Slam y Super Series (busca novedades)
 """
 import argparse
 import json
@@ -219,7 +220,6 @@ def scrape_fet_player(fc):
     if not a:
         return None
     b = get(f"{FET}/api/publico/historial/jugadores/{fc}", binary=False) or {}
-    circ = fet_circuito(fc)
     return {"id": fc, "nombre": a.get("nombre"), "club": (a.get("club") or {}).get("nombre"),
             "rating": a.get("rating"), "activo": a.get("activo"), "vigente": a.get("vigente"),
             "res": b.get("resumen"),
@@ -228,7 +228,7 @@ def scrape_fet_player(fc):
             "rating_hist": thin([[r["fecha"], r["puntos"], r["posicion"]] for r in b.get("rating") or []], 80),
             "pal": [{"f": x["fecha"], "ev": x["evento"], "tipo": x["tipo"], "cat": x["categoria"], "pu": x["puesto"]}
                     for x in (b.get("palmares") or [])[:25]],
-            "clases": b.get("por_clase") or [], "circ": circ or []}
+            "clases": b.get("por_clase") or []}
 
 
 # ------------------------------------------------------- Torneos del club (TMT)
@@ -396,18 +396,83 @@ def scrape_players():
         linked = {str(v) for v in by_tmt.values()}
         only_ids = [i for i in fet_ids if i not in linked]
         fo = dict(zip(only_ids, ex.map(scrape_fet_player, only_ids)))
-    out = {"updated": now,
+    # Grand Slam y Super Series se actualizan aparte (scrape_circuito): se conservan los datos anteriores
+    prev = load_fet_raw()
+    old = {str(r["id"]): r for r in list((prev.get("byTmt") or {}).values()) + list((prev.get("fetOnly") or {}).values())}
+    for r in list(bt.values()) + list(fo.values()):
+        if r and "circ" in old.get(str(r["id"]), {}):
+            r["circ"] = old[str(r["id"])]["circ"]
+    out = {"updated": now, "circ_eventos": prev.get("circ_eventos") or {}, "circ_updated": prev.get("circ_updated"),
            "club": {k: club.get(k) for k in ("id", "nombre", "datos", "delegados", "ranking", "jugadores")},
            "byTmt": {k: v for k, v in bt.items() if v}, "fetOnly": {k: v for k, v in fo.items() if v}}
     (DATA / "fet_raw.json").write_text(json.dumps(out, ensure_ascii=False))
     print("FETEMBA:", len(out["byTmt"]), "vinculados +", len(out["fetOnly"]), "solo FETEMBA")
 
 
+def load_fet_raw():
+    path = DATA / "fet_raw.json"
+    try:
+        return json.loads(path.read_text()) if path.exists() else {}
+    except ValueError:
+        return {}
+
+
+def circ_eventos():
+    """Grand Slam y Super Series de este año y el anterior, con la cantidad de partidos cargados: {id: partidos}."""
+    y = datetime.now(timezone.utc).year
+    out = {}
+    for anio in (y - 1, y):
+        d = get(f"{FET}/api/publico/historial/torneos?anio={anio}", binary=False)
+        if d is None:
+            return None
+        for e in d.get("eventos") or []:
+            if (e.get("tipo") or {}).get("nombre") in CIRCUITO:
+                out[str(e["id"])] = e.get("partidos") or 0
+    return out
+
+
+def scrape_circuito():
+    """Grand Slam y Super Series de los jugadores federados. Solo vuelve a bajar todo si FETEMBA cargó
+    un torneo nuevo o más partidos de uno existente; los jugadores nuevos se bajan siempre."""
+    path = DATA / "fet_raw.json"
+    fet = load_fet_raw()
+    recs = list((fet.get("byTmt") or {}).values()) + list((fet.get("fetOnly") or {}).values())
+    if not recs:
+        print("Grand Slam y Super Series: primero hay que bajar los jugadores.")
+        return
+    evs = circ_eventos()
+    if evs is None:
+        print("Grand Slam y Super Series: FETEMBA no respondió; se conservan los datos anteriores.")
+        return
+    prev = fet.get("circ_eventos") or {}
+    cambios = sorted(k for k, n in evs.items() if prev.get(k) != n)
+    todo = bool(cambios)
+    pend = recs if todo else [r for r in recs if "circ" not in r]
+    if not pend:
+        print("Grand Slam y Super Series: sin novedades en FETEMBA.")
+        return
+    with ThreadPoolExecutor(4) as ex:
+        res = list(ex.map(lambda r: fet_circuito(r["id"]), pend))
+    err = 0
+    for r, c in zip(pend, res):
+        if c is None:
+            err += 1
+        else:
+            r["circ"] = c
+    if not err:
+        fet["circ_eventos"] = evs
+    fet["circ_updated"] = datetime.now(timezone.utc).isoformat()
+    path.write_text(json.dumps(fet, ensure_ascii=False))
+    print(f"Grand Slam y Super Series: {len(pend) - err} jugadores actualizados"
+          + (f" (torneos nuevos o con más partidos: {', '.join(cambios)})" if todo else " (jugadores nuevos)")
+          + (f", {err} con error (se reintenta la próxima vez)" if err else ""))
+
+
 def main():
     ap = argparse.ArgumentParser(description="Descarga datos del club SPIN desde TMT y FETEMBA.")
-    ap.add_argument("partes", nargs="*", metavar="{calendario,jugadores}",
+    ap.add_argument("partes", nargs="*", metavar="{calendario,jugadores,circuito}",
                     help="qué actualizar (por defecto, todo)")
-    todas = {"calendario", "jugadores"}
+    todas = {"calendario", "jugadores", "circuito"}
     partes = set(ap.parse_args().partes) or todas
     if partes - todas:
         ap.error("opción desconocida: " + ", ".join(sorted(partes - todas)))
@@ -419,6 +484,8 @@ def main():
             print("Calendario: error", e, file=sys.stderr)
     if "jugadores" in partes:
         scrape_players()
+    if "circuito" in partes:
+        scrape_circuito()
 
 
 if __name__ == "__main__":
