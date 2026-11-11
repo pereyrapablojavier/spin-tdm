@@ -814,6 +814,12 @@
     draw("");
   }
 
+  // ---------- contacto: el correo se arma acá para que no quede escrito entero en el HTML
+  const MAIL = ["porradevelopment", "gmail.com"];
+  const mailto = () => `mailto:${MAIL[0]}@${MAIL[1]}?subject=${encodeURIComponent("Sitio SPIN Tenis de Mesa")}`;
+  const setContactLinks = (root = document) => root.querySelectorAll("a.contacto").forEach((a) => { a.href = mailto(); });
+  setContactLinks();
+
   // ---------- aviso legal
   function viewLegal() {
     $app.innerHTML = `<div class="section legal"><h1>Aviso legal</h1>
@@ -830,10 +836,12 @@
         <p>Este sitio <b>no es oficial</b> de TMT ni de FETEMBA, y no tiene relación con esas organizaciones más allá de consultar su información pública.</p></div>
       <div class="card section"><h3>Privacidad</h3>
         <p>No se publican edades ni fechas de nacimiento de los jugadores. El sitio no pide registro ni guarda datos personales: los jugadores que guardás en <a href="#/perfil">Mi perfil</a> quedan solo en tu celular o computadora.</p>
-        <p>Si querés que se corrija o se quite algún dato, escribinos por Instagram a <a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a>.</p></div>
+        <p>Si querés que se corrija o se quite algún dato, escribime por <a class="contacto" href="#/legal">correo</a> o al Instagram del club, <a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a>.</p></div>
       <div class="card section"><h3>Derechos</h3>
-        <p>© 2026 Pablo Javier Pereyra. El diseño y el desarrollo del sitio son de su autor. Los datos, nombres y resultados pertenecen a sus respectivas fuentes, y el escudo, al Club SPIN Tenis de Mesa.</p></div>
+        <p>© 2026 Pablo Javier Pereyra. El diseño y el desarrollo del sitio son de su autor. Los datos, nombres y resultados pertenecen a sus respectivas fuentes, y el escudo, al Club SPIN Tenis de Mesa.</p>
+        <p><a class="btn ghost contacto" href="#/legal">✉️ Contacto</a></p></div>
     </div>`;
+    setContactLinks($app);
   }
 
   // ---------- router
