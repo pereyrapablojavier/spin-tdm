@@ -740,7 +740,13 @@
   installBtn.addEventListener("click", doInstall);
   if (isIOS() && !isStandalone()) installBtn.hidden = false;
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    // Actualizaciones: al abrir o volver a la app se busca una versión nueva; cuando se instala, la página se recarga sola una vez.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloading) { reloading = true; location.reload(); } });
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").then((reg) => {
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+    }).catch(() => {}));
   }
 
   function viewApp() {
