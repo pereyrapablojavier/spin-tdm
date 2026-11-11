@@ -117,6 +117,8 @@ td.r, th.r { text-align: right; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--linea); background: var(--card); color: var(--tinta-2); padding: 6px 12px; border-radius: 999px; cursor: pointer; font: 600 13px Inter, sans-serif; }
 .chip.on { background: var(--tinta); color: var(--bg); border-color: var(--tinta); }
+.eqcats { align-items: center; margin-top: 10px; }
+.eqcats[hidden] { display: none; }
 
 /* player */
 .phead { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
