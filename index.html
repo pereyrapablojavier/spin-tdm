@@ -2,68 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>SPIN Tenis de Mesa · Jugadores y estadísticas</title>
-  <meta name="description" content="Club SPIN Tenis de Mesa (Villa Crespo, Pueyrredón y Saavedra, CABA): plantel, ratings y estadísticas de TMT y FETEMBA.">
-  <meta name="theme-color" content="#0E1B2A">
-  <!-- App instalable (PWA) -->
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SPIN TDM">
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="icon" href="assets/icons/favicon-32.png" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css?v=17">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPIN Tenis de Mesa · El sitio se mudó</title>
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://pereyrapablojavier.github.io/clubes-tdm/spin-tdm/">
+  <!-- El sitio de SPIN se mudó a clubes-tdm. Se conserva la sección (#/...) para que los links viejos sigan andando. -->
+  <script>location.replace("https://pereyrapablojavier.github.io/clubes-tdm/spin-tdm/" + location.hash);</script>
+  <noscript><meta http-equiv="refresh" content="0; url=https://pereyrapablojavier.github.io/clubes-tdm/spin-tdm/"></noscript>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.5 system-ui, sans-serif; background: #0E1B2A; color: #EAF2FA; text-align: center; padding: 16px; box-sizing: border-box; }
+    a { color: #74ACDF; }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="wrap topbar-in">
-      <a class="brand" href="#/">
-        <img src="assets/escudo.png" alt="" width="40" height="47">
-        <span><b>SPIN</b><small>Tenis de Mesa</small></span>
-      </a>
-      <button class="install-btn" id="installBtn" hidden>📲 Instalar app</button>
-      <button class="menu-btn" aria-label="Menú" aria-expanded="false">☰</button>
-      <nav class="nav">
-        <a href="#/" data-r="inicio">Inicio</a>
-        <a href="#/favoritos" data-r="favoritos">⭐ Favoritos</a>
-        <a href="#/jugadores" data-r="jugadores">Jugadores</a>
-        <a href="#/comparar" data-r="comparar">Comparar</a>
-        <div class="nav-dd">
-          <button class="nav-ddb" type="button" aria-expanded="false" aria-haspopup="true">Mi Club <span class="caret">▾</span></button>
-          <div class="nav-ddm">
-            <a href="#/club" data-r="club">Dónde estamos</a>
-            <a href="#/calendario" data-r="calendario">Calendario</a>
-            <a href="#/torneos" data-r="torneos">Torneos</a>
-          </div>
-        </div>
-        <span class="nav-g">FETEMBA</span>
-        <a href="#/liga" data-r="liga">Liga de Equipos</a>
-        <a href="#/copa" data-r="copa">Copa de Clubes</a>
-        <a href="#/circuito" data-r="circuito">Grand Slam y SS</a>
-        <span class="nav-g"></span>
-        <a href="#/app" data-r="app">📲 App</a>
-      </nav>
-    </div>
-  </header>
-  <main id="app" class="wrap"><div class="loading">Cargando…</div></main>
-  <footer class="footer">
-    <div class="wrap">
-      <p class="disclaimer">La información de este sitio es <b>pública</b> y se consulta a
-        <a href="https://www.tenisdemesaparatodos.com/" target="_blank" rel="noopener">Tenis de Mesa para Todos (TMT)</a> y a
-        <a href="https://fetemba.bsweb.com.ar/" target="_blank" rel="noopener">FETEMBA</a>.
-        Los datos, resultados y rankings <b>no nos pertenecen</b>: son propiedad de sus respectivas fuentes, que son las que valen ante cualquier diferencia.
-        Este sitio no es oficial de TMT ni de FETEMBA. <a href="#/legal">Aviso legal</a></p>
-      <p id="updated"></p>
-      <p><a href="#/app">Instalá la app en tu celular</a> · <a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a></p>
-      <p class="copy">© 2026 Pablo Javier Pereyra. Diseño y desarrollo del sitio. · <a class="contacto" href="#/legal">Contacto</a></p>
-    </div>
-  </footer>
-  <script src="assets/app.js?v=17"></script>
+  <p>El sitio de SPIN Tenis de Mesa se mudó a<br><a href="https://pereyrapablojavier.github.io/clubes-tdm/spin-tdm/">https://pereyrapablojavier.github.io/clubes-tdm/spin-tdm/</a></p>
 </body>
 </html>
