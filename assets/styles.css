@@ -219,9 +219,31 @@ details.enc summary { padding: 8px 10px; gap: 8px; }
 details.enc summary .t { flex: 1 1 200px; font-weight: 400; font-size: 14px; }
 .score { font-size: 16px; }
 .wl.pend { background: var(--linea); color: var(--gris); }
-.nav a { padding: 8px 10px; font-size: 13.5px; }
-@media (max-width: 1120px) {
+.nav a { padding: 8px 10px; font-size: 13.5px; white-space: nowrap; }
+@media (max-width: 1240px) {
   .menu-btn { display: block; }
   .nav { display: none; position: absolute; top: 68px; left: 0; right: 0; background: #0E1B2A; flex-direction: column; padding: 8px 16px 16px; margin-left: 0 !important; }
   .nav.open { display: flex; }
 }
+
+/* Grand Slam y Super Series */
+.badge.gs { background: #F6E9C2; color: #6B4E00; border-color: #E8D18E; }
+.badge.ss { background: var(--celeste-3); color: var(--azul); border-color: var(--celeste-2); }
+@media (prefers-color-scheme: dark) { .badge.gs { background: #3A2F12; color: #F0D78A; border-color: #5C4A1C; } }
+details.circ summary { flex-wrap: nowrap; }
+details.circ summary .t { flex: 1 1 0; min-width: 0; }
+details.circ .fecha { flex-basis: 48px; height: 52px; }
+details.circ .fecha b { font-size: 22px; }
+details.circ .fecha span { font-size: 10px; letter-spacing: .5px; }
+.ctbl td:first-child { white-space: normal; }
+.ctbl td { vertical-align: top; }
+.cres { text-align: right; flex: 0 0 auto; max-width: 45%; }
+
+/* separadores del menú: una línea fina en la compu; título de grupo en el menú ☰ */
+.nav-g { align-self: center; width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, .18); font-size: 0; }
+@media (max-width: 1240px) {
+  .nav-g { align-self: stretch; text-align: left; width: auto; height: auto; margin: 10px 0 2px; background: none; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--celeste-2); padding: 0 10px; }
+  .nav-g:empty { height: 1px; margin: 8px 10px; background: rgba(255, 255, 255, .12); padding: 0; }
+}
+
+.brand { flex-shrink: 0; } .brand small { white-space: nowrap; }

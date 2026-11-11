@@ -3,7 +3,7 @@
 Sitio web del **Club SPIN Tenis de Mesa** (Villa Crespo · Villa Pueyrredón · Saavedra, CABA) con el plantel completo y las estadísticas de cada jugador, tomadas de:
 
 - **TMT – Tenis de Mesa para Todos**: rating, ranking, categoría, torneos, partidos, efectividad, podios, últimos 20 torneos con el detalle de cada partido.
-- **FETEMBA**: rating y puesto en el ranking federado, historial de rating, partidos por año, palmarés, individuales/dobles/equipos.
+- **FETEMBA**: rating y puesto en el ranking federado, historial de rating, partidos por año, palmarés, individuales/dobles/equipos, y los resultados en Grand Slam y Super Series.
 
 ## Cómo funciona
 
@@ -11,7 +11,7 @@ Sitio web del **Club SPIN Tenis de Mesa** (Villa Crespo · Villa Pueyrredón · 
 |---|---|
 | `index.html`, `assets/` | El sitio (HTML + CSS + JS, sin dependencias externas). |
 | `data/tmt_raw.json`, `data/fet_raw.json` | Datos descargados de TMT y FETEMBA. |
-| `data/club.json`, `data/players.json` | Datos procesados que usa el sitio. |
+| `data/club.json`, `data/players.json`, `data/calendar.json`, `data/equipos.json`, `data/circuito.json` | Datos procesados que usa el sitio (`circuito.json`: Grand Slam y Super Series de FETEMBA). |
 | `scripts/scrape.py` | Descarga los datos del club desde TMT y FETEMBA. |
 | `scripts/equipos.py` | Descarga la Liga de Equipos y la Copa de Clubes desde fetembaequipos.ar. |
 | `scripts/build.py` | Combina los datos (genera `_site/`; el workflow copia los JSON a `data/`). |

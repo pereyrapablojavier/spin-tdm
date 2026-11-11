@@ -2,7 +2,7 @@
 
 Genera:
   data/tmt_raw.json  - jugadores del club en Tenis de Mesa para Todos (TMT)
-  data/fet_raw.json  - datos del club y sus jugadores en FETEMBA
+  data/fet_raw.json  - datos del club y sus jugadores en FETEMBA (incluye Grand Slam y Super Series)
 
 Uso:  python scripts/scrape.py                 # todo (calendario + jugadores)
       python scripts/scrape.py calendario      # solo el calendario de torneos del club
@@ -200,11 +200,26 @@ def thin(a, n):
     return [a[round(i * (len(a) - 1) / (n - 1))] for i in range(n)]
 
 
+CIRCUITO = {"Grand Slam": "GS", "Super Series": "SS"}
+
+
+def fet_circuito(fc):
+    """Participaciones del jugador en Grand Slam y Super Series (torneos individuales de FETEMBA)."""
+    t = get(f"{FET}/api/publico/historial/jugadores/{fc}/torneos", binary=False)
+    if t is None:
+        return None
+    return [{"e": x["evento_id"], "ev": x["evento"], "f": x["fecha"], "tipo": CIRCUITO[x["tipo"]],
+             "cats": [[c["id"], c["nombre"]] for c in x.get("categorias") or []],
+             "g": x.get("ganados") or 0, "p": x.get("perdidos") or 0, "pu": x.get("puesto"), "ll": x.get("llave")}
+            for x in t if x.get("tipo") in CIRCUITO]
+
+
 def scrape_fet_player(fc):
     a = get(f"{FET}/api/publico/jugadores/{fc}", binary=False)
     if not a:
         return None
     b = get(f"{FET}/api/publico/historial/jugadores/{fc}", binary=False) or {}
+    circ = fet_circuito(fc)
     return {"id": fc, "nombre": a.get("nombre"), "club": (a.get("club") or {}).get("nombre"),
             "rating": a.get("rating"), "activo": a.get("activo"), "vigente": a.get("vigente"),
             "res": b.get("resumen"),
@@ -213,7 +228,7 @@ def scrape_fet_player(fc):
             "rating_hist": thin([[r["fecha"], r["puntos"], r["posicion"]] for r in b.get("rating") or []], 80),
             "pal": [{"f": x["fecha"], "ev": x["evento"], "tipo": x["tipo"], "cat": x["categoria"], "pu": x["puesto"]}
                     for x in (b.get("palmares") or [])[:25]],
-            "clases": b.get("por_clase") or []}
+            "clases": b.get("por_clase") or [], "circ": circ or []}
 
 
 # ------------------------------------------------------- Torneos del club (TMT)

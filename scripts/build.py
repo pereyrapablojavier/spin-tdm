@@ -227,6 +227,7 @@ def build():
 
     calendar = build_calendar(players)
     equipos = build_equipos(players)
+    circuito = build_circuito(players, fet)
 
     # --- write
     if OUT.exists():
@@ -242,6 +243,8 @@ def build():
         (OUT / "data" / "calendar.json").write_text(json.dumps(calendar, ensure_ascii=False, separators=(",", ":")))
     if equipos:
         (OUT / "data" / "equipos.json").write_text(json.dumps(equipos, ensure_ascii=False, separators=(",", ":")))
+    if circuito:
+        (OUT / "data" / "circuito.json").write_text(json.dumps(circuito, ensure_ascii=False, separators=(",", ":")))
     (OUT / "data" / "players.json").write_text(json.dumps(players, ensure_ascii=False, separators=(",", ":")))
     print(f"Sitio generado en {OUT} — {len(players)} jugadores")
 
@@ -288,6 +291,25 @@ def build_calendar(players):
 
 
 CAMPEONATOS = {5: "Liga de Equipos · 2° semestre", 3: "Liga de Equipos · 1° semestre", 4: "Copa de Clubes"}
+
+
+def build_circuito(players, fet):
+    """Grand Slam y Super Series (FETEMBA): cada torneo con los jugadores del plantel que lo jugaron."""
+    by_fet = {str(p["fet"]["id"]): p["id"] for p in players.values() if p.get("fet")}
+    recs = list((fet.get("byTmt") or {}).values()) + list((fet.get("fetOnly") or {}).values())
+    if not any("circ" in r for r in recs):
+        return None
+    ev = {}
+    for r in recs:
+        fid = str(r["id"])
+        for x in r.get("circ") or []:
+            e = ev.setdefault(x["e"], {"id": x["e"], "ev": x["ev"], "f": x["f"], "tipo": x["tipo"], "part": []})
+            e["f"] = min(e["f"], x["f"])
+            e["part"].append({"fid": fid, "id": by_fet.get(fid), "name": r.get("nombre"), "club": r.get("club"),
+                              "cats": x["cats"], "g": x["g"], "p": x["p"], "pu": x["pu"], "ll": x["ll"]})
+    for e in ev.values():
+        e["part"].sort(key=lambda q: (q["ll"] != "A", q["pu"] or 999, -q["g"], q["name"] or ""))
+    return {"updated": fet.get("updated"), "eventos": sorted(ev.values(), key=lambda e: (e["f"], e["id"]), reverse=True)}
 
 
 def is_spin_team(name):
