@@ -238,3 +238,12 @@ details.circ .fecha span { font-size: 10px; letter-spacing: .5px; }
 .ctbl td:first-child { white-space: normal; }
 .ctbl td { vertical-align: top; }
 .cres { text-align: right; flex: 0 0 auto; max-width: 45%; }
+
+/* separadores del menú: una línea fina en la compu; título de grupo en el menú ☰ */
+.nav-g { align-self: center; width: 1px; height: 18px; margin: 0 4px; background: rgba(255, 255, 255, .18); font-size: 0; }
+@media (max-width: 1240px) {
+  .nav-g { align-self: stretch; text-align: left; width: auto; height: auto; margin: 10px 0 2px; background: none; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--celeste-2); padding: 0 10px; }
+  .nav-g:empty { height: 1px; margin: 8px 10px; background: rgba(255, 255, 255, .12); padding: 0; }
+}
+
+.brand { flex-shrink: 0; } .brand small { white-space: nowrap; }
