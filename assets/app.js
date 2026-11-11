@@ -35,7 +35,7 @@
     has: (id) => favs.list().includes(id),
     toggle(id) { const l = favs.list(); const i = l.indexOf(id); if (i >= 0) l.splice(i, 1); else l.push(id); store.set("spin.favs", l); return i < 0; },
   };
-  const favLabel = (on) => (on ? "★ En Mi perfil" : "☆ Guardar en Mi perfil");
+  const favLabel = (on) => (on ? "★ En Favoritos" : "☆ Agregar a Favoritos");
   const spark = (vals, w = 90, h = 26) => {
     if (!vals || vals.length < 2) return "";
     const mn = Math.min(...vals), mx = Math.max(...vals), r = mx - mn || 1;
@@ -194,7 +194,7 @@
       });
       tb.innerHTML = rows.map((p) => `<tr>
         <td class="r num muted">${p.clubPos ?? ""}</td>
-        <td>${favs.has(p.id) ? `<span class="favstar" title="En Mi perfil">★</span> ` : ""}${plink(p.id, p.name)} ${p.src.length === 1 && p.src[0] === "fet" ? srcBadges(p.src) : ""}</td>
+        <td>${favs.has(p.id) ? `<span class="favstar" title="En Favoritos">★</span> ` : ""}${plink(p.id, p.name)} ${p.src.length === 1 && p.src[0] === "fet" ? srcBadges(p.src) : ""}</td>
         <td>${catBadge(p.cat)}</td><td class="r num"><b>${fmt(p.rating)}</b></td><td class="r num">${fmt(p.rankPos)}</td>
         <td class="r num">${p.wr != null ? p.wr + "%" : "–"}</td><td class="r num">${p.wr12 != null ? p.wr12 + "%" : "–"}</td>
         <td class="r num">${fmt(p.pj)}</td><td class="r num">${fmt(p.pod)}</td><td class="r num">${signed(p.delta)}</td>
@@ -234,7 +234,7 @@
     };
     $app.innerHTML = `
     <div class="section">
-      ${perfil ? `<h1 class="ptitle">⭐ Mi perfil</h1>${perfil.length > 1 ? `<div class="chips" id="pfChips">${perfil.map((x) => `<button class="chip ${x === id ? "on" : ""}" data-id="${esc(x)}">${esc(niceName(byId(x).name))}</button>`).join("")}</div>` : ""}`
+      ${perfil ? `<h1 class="ptitle">⭐ Favoritos</h1>${perfil.length > 1 ? `<div class="chips" id="pfChips">${perfil.map((x) => `<button class="chip ${x === id ? "on" : ""}" data-id="${esc(x)}">${esc(niceName(byId(x).name))}</button>`).join("")}</div>` : ""}`
         : `<a href="#/jugadores" class="small">← Jugadores</a>`}
       <div class="phead" style="margin-top:10px">
         <div class="avatar">${esc(initials(p.name))}</div>
@@ -784,20 +784,20 @@
     });
   }
 
-  // ---------- Mi perfil (jugadores guardados en este dispositivo)
+  // ---------- Favoritos (jugadores guardados en este dispositivo)
   async function viewPerfil() {
     killCharts();
     const ids = favs.list().filter((id) => byId(id));
     if (ids.length) {
       let sel = store.get("spin.perfilSel", null);
       if (!ids.includes(sel)) sel = ids[0];
-      document.title = `Mi perfil · ${niceName(byId(sel).name)} · SPIN`;
+      document.title = `Favoritos · ${niceName(byId(sel).name)} · SPIN`;
       await viewJugador(sel, ids);
       return;
     }
-    document.title = "Mi perfil · SPIN Tenis de Mesa";
-    $app.innerHTML = `<div class="section"><h1>⭐ Mi perfil</h1>
-      <p class="muted" style="max-width:640px">Guardá tu ficha (o la de los jugadores que seguís) y la vas a tener siempre a mano acá. Buscá un jugador y tocá <b>☆ Guardar</b>, o entrá a cualquier ficha y tocá <b>☆ Guardar en Mi perfil</b>.</p>
+    document.title = "Favoritos · SPIN Tenis de Mesa";
+    $app.innerHTML = `<div class="section"><h1>⭐ Favoritos</h1>
+      <p class="muted" style="max-width:640px">Agregá tu ficha (o la de los jugadores que seguís) y la vas a tener siempre a mano acá. Buscá un jugador y tocá <b>☆ Agregar</b>, o entrá a cualquier ficha y tocá <b>☆ Agregar a Favoritos</b>.</p>
       <div class="filters"><input id="pfQ" type="search" placeholder="Buscar jugador…" autocomplete="off"></div>
       <ul class="list card" id="pfRes" style="margin-top:12px"></ul>
       <p class="small muted">Se guarda solo en este celular o computadora, no hace falta registrarse. Si borrás los datos del navegador, se pierde.</p></div>`;
@@ -807,7 +807,7 @@
       const n = norm(q.trim());
       const rows = n.length < 2 ? [] : CLUB.players.filter((p) => norm(p.name).includes(n) || norm(niceName(p.name)).includes(n)).slice(0, 10);
       res.hidden = !rows.length;
-      res.innerHTML = rows.map((p) => `<li><span class="grow">${plink(p.id, niceName(p.name))} <span class="small muted">${p.cat ? "Cat. " + esc(p.cat) : ""}</span></span><button class="btn" data-id="${esc(p.id)}">☆ Guardar</button></li>`).join("");
+      res.innerHTML = rows.map((p) => `<li><span class="grow">${plink(p.id, niceName(p.name))} <span class="small muted">${p.cat ? "Cat. " + esc(p.cat) : ""}</span></span><button class="btn" data-id="${esc(p.id)}">☆ Agregar</button></li>`).join("");
     };
     document.getElementById("pfQ").addEventListener("input", (e) => draw(e.target.value));
     res.addEventListener("click", (e) => { const b = e.target.closest("button[data-id]"); if (b) { favs.toggle(b.dataset.id); store.set("spin.perfilSel", b.dataset.id); viewPerfil(); } });
@@ -835,7 +835,7 @@
         <p>La información y los datos <b>no nos pertenecen</b>: son propiedad de TMT y de FETEMBA, según corresponda. Este sitio solo los reúne y los presenta para los jugadores del Club SPIN. Ante cualquier diferencia, valen siempre los datos publicados por cada fuente.</p>
         <p>Este sitio <b>no es oficial</b> de TMT ni de FETEMBA, y no tiene relación con esas organizaciones más allá de consultar su información pública.</p></div>
       <div class="card section"><h3>Privacidad</h3>
-        <p>No se publican edades ni fechas de nacimiento de los jugadores. El sitio no pide registro ni guarda datos personales: los jugadores que guardás en <a href="#/perfil">Mi perfil</a> quedan solo en tu celular o computadora.</p>
+        <p>No se publican edades ni fechas de nacimiento de los jugadores. El sitio no pide registro ni guarda datos personales: los jugadores que agregás a <a href="#/favoritos">Favoritos</a> quedan solo en tu celular o computadora.</p>
         <p>Si querés que se corrija o se quite algún dato, escribime por <a class="contacto" href="#/legal">correo</a> o al Instagram del club, <a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a>.</p></div>
       <div class="card section"><h3>Derechos</h3>
         <p>© 2026 Pablo Javier Pereyra. El diseño y el desarrollo del sitio son de su autor. Los datos, nombres y resultados pertenecen a sus respectivas fuentes, y el escudo, al Club SPIN Tenis de Mesa.</p>
@@ -851,7 +851,7 @@
     const [path, qs] = h.split("?");
     const parts = path.split("/").filter(Boolean);
     const r = parts[0] || "inicio";
-    document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("on", a.dataset.r === (r === "jugador" ? "jugadores" : r)));
+    document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("on", a.dataset.r === (r === "jugador" ? "jugadores" : r === "perfil" ? "favoritos" : r)));
     document.querySelector(".nav").classList.remove("open");
     const dd = document.querySelector(".nav-dd");
     dd.classList.remove("open"); dd.querySelector(".nav-ddb").setAttribute("aria-expanded", "false");
@@ -867,7 +867,7 @@
     else if (r === "liga") await viewEquipos("liga");
     else if (r === "copa") await viewEquipos("copa");
     else if (r === "circuito") await viewCircuito();
-    else if (r === "perfil") { await viewPerfil(); return; }
+    else if (r === "favoritos" || r === "perfil") { await viewPerfil(); return; }
     else if (r === "legal") viewLegal();
     else viewInicio();
     const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "Dónde estamos", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series", legal: "Aviso legal" }[r];
