@@ -283,6 +283,7 @@
           <b class="num">${esc(m.res)}</b><span class="num small">${signed(m.v)}</span></div>`).join("")}</div></details>`).join("")}
     </div>` : ""}
 
+    <div id="circPlayer"></div>
     <div id="eqPlayer"></div>
     ${f ? `
     <div class="section grid g2">
@@ -315,6 +316,15 @@
       box.innerHTML = `<div class="card section"><h3>🏟️ Liga de Equipos y Copa de Clubes</h3><div class="tbl-wrap"><table><thead><tr><th>Competencia</th><th>Equipo</th><th class="r">Singles</th><th class="r">Dobles</th></tr></thead><tbody>
         ${Object.entries(by).map(([k, b]) => `<tr><td><a href="#/${b.tipo}">${esc(k)}</a></td><td class="small">${[...b.teams].map(esc).join("<br>")}</td><td class="r num">${b.s_w}-${b.s_l}</td><td class="r num">${b.d_w}-${b.d_l}</td></tr>`).join("")}
         </tbody></table></div></div>`;
+    }).catch(() => {});
+    if (f) getJSON("data/circuito.json").then((C) => {
+      const box = document.getElementById("circPlayer"); if (!box) return;
+      const rows = C.eventos.flatMap((e) => e.part.filter((q) => q.fid === String(f.id)).map((q) => ({ ...q, e })));
+      if (!rows.length) return;
+      const g = rows.reduce((a, q) => a + q.g, 0), l = rows.reduce((a, q) => a + q.p, 0), pods = rows.filter(podio).length;
+      box.innerHTML = `<div class="card section"><div class="card-head"><h3>🏓 Grand Slam y Super Series</h3><a href="#/circuito">Ver todos →</a></div>
+        <p class="small muted">${rows.length} torneos · ${g}-${l} en partidos (${pct(g, g + l) ?? "–"}%) · ${pods} ${pods === 1 ? "podio" : "podios"}</p>
+        <ul class="list">${rows.slice(0, 15).map((q) => circRow(`${circBadge(q.e.tipo)} <b>${esc(q.e.ev)}</b>`, q, fdate(q.e.f) + " · ")).join("")}</ul>${rows.length > 15 ? `<p class="small muted">Últimos 15 de ${rows.length}.</p>` : ""}</div>`;
     }).catch(() => {});
     // tabs
     const tabs = document.getElementById("stTabs");
@@ -624,6 +634,66 @@
     draw();
   }
 
+  // ---------- Grand Slam y Super Series (FETEMBA)
+  const FET_URL = "https://fetemba.bsweb.com.ar";
+  const CIRC = { GS: "Grand Slam", SS: "Super Series" };
+  const circState = { year: null, tipo: "" };
+  const RONDA = { 1: "Campeón", 2: "Finalista", 3: "Semifinal", 4: "4°", 5: "Cuartos", 9: "Octavos", 17: "16avos", 33: "32avos", 65: "64avos" };
+  const podio = (q) => q.ll === "A" && q.pu && q.pu <= 3;
+  const circRes = (q) => {
+    if (!q.ll) return `<span class="muted">Zona</span>`;
+    const r = RONDA[q.pu] || (q.pu ? q.pu + "°" : "–");
+    return q.ll === "A" ? `${medal(q.pu)} ${q.pu && q.pu <= 3 ? `<b>${r}</b>` : r}` : `<span class="muted">Consuelo:</span> ${q.pu === 1 ? "<b>Campeón</b>" : r}`;
+  };
+  const circCats = (q) => q.cats.map(([id, n]) => `<a href="${FET_URL}/historial/categorias/${id}" target="_blank" rel="noopener">${esc(n)}</a>`).join(" · ");
+  const circRow = (head, q, extra = "") => `<li><span class="grow"><div>${head}</div><div class="small muted">${extra}${circCats(q)} · <span class="num">${q.g}-${q.p}</span></div></span><span class="small cres">${circRes(q)}</span></li>`;
+  const circBadge = (t) => `<span class="badge ${t === "GS" ? "gs" : "ss"}">${CIRC[t]}</span>`;
+  async function viewCircuito() {
+    $app.innerHTML = `<div class="loading">Cargando…</div>`;
+    let C;
+    try { C = await getJSON("data/circuito.json"); } catch (e) { $app.innerHTML = `<div class="section"><h1>Grand Slam y Super Series</h1><p class="muted">Todavía no hay datos.</p></div>`; return; }
+    const years = [...new Set(C.eventos.map((e) => e.f.slice(0, 4)))].sort().reverse();
+    if (!years.includes(circState.year)) circState.year = years[0] || null;
+    $app.innerHTML = `<div class="section"><h1>Grand Slam y Super Series</h1>
+      <p class="muted" style="max-width:720px">Los torneos individuales de FETEMBA: los <b>Grand Slam</b> y las <b>Super Series</b>. Acá están los jugadores del plantel de SPIN en cada torneo: categoría, partidos y hasta dónde llegaron.</p>
+      <div class="filters"><select id="ciY">${years.map((y) => `<option>${y}</option>`).join("")}<option value="">Todos los años</option></select></div>
+      <div class="chips" id="ciT" style="margin-top:10px">${[["", "Todos"], ["GS", "Grand Slam"], ["SS", "Super Series"]].map(([k, n]) => `<button class="chip" data-t="${k}">${n}</button>`).join("")}</div>
+      <div id="ciBody"></div>
+      <p class="small muted" style="margin-top:16px">Fuente: <a href="${FET_URL}/historial" target="_blank" rel="noopener">FETEMBA · Historial ↗</a>. Se muestra el plantel actual de SPIN, también en torneos en los que jugaban por otro club. Llave A: cuadro principal; consuelo: llave B; Zona: no pasó la zona de grupos.</p></div>`;
+    const draw = () => {
+      document.querySelectorAll("#ciT .chip").forEach((c) => c.classList.toggle("on", c.dataset.t === circState.tipo));
+      const evs = C.eventos.filter((e) => (!circState.year || e.f.startsWith(circState.year)) && (!circState.tipo || e.tipo === circState.tipo));
+      const parts = evs.flatMap((e) => e.part.map((q) => ({ ...q, e })));
+      const g = parts.reduce((a, q) => a + q.g, 0), l = parts.reduce((a, q) => a + q.p, 0);
+      const pods = parts.filter(podio), tit = pods.filter((q) => q.pu === 1).length;
+      const js = {};
+      parts.forEach((q) => { const k = q.fid; const j = js[k] || (js[k] = { q, n: 0, g: 0, p: 0, pod: 0, tit: 0, best: null }); j.n++; j.g += q.g; j.p += q.p;
+        if (podio(q)) { j.pod++; if (q.pu === 1) j.tit++; } if (q.ll === "A" && q.pu && (j.best == null || q.pu < j.best)) j.best = q.pu; });
+      const jug = Object.values(js).sort((a, b) => b.tit - a.tit || b.pod - a.pod || b.n - a.n || b.g - a.g);
+      const who = (q) => (q.id ? plink(q.id, niceName(q.name)) : esc(niceName(q.name)));
+      document.getElementById("ciBody").innerHTML = !evs.length ? `<p class="muted section">No hay jugadores de SPIN en estos torneos.</p>` : `
+        <div class="grid tiles section">
+          ${tile(evs.length, "Torneos con SPIN", `${evs.filter((e) => e.tipo === "GS").length} GS · ${evs.filter((e) => e.tipo === "SS").length} SS`)}
+          ${tile(parts.length, "Participaciones", `${jug.length} jugadores`)}
+          ${tile(`${g}-${l}`, "Partidos G-P", `${pct(g, g + l) ?? "–"}% ganados`)}
+          ${tile(pods.length, "Podios", `${tit} ${tit === 1 ? "título" : "títulos"}`)}
+        </div>
+        ${pods.length ? `<div class="card section"><h3>🏅 Podios</h3><ul class="list">${pods.map((q) => `<li><span class="medal">${medal(q.pu)}</span><span class="grow"><div class="ellipsis">${who(q)} · ${circCats(q)}</div><div class="small muted">${fdate(q.e.f)} · ${esc(q.e.ev)} · ${CIRC[q.e.tipo]}</div></span></li>`).join("")}</ul></div>` : ""}
+        <div class="card section"><h3>👥 Jugadores de SPIN</h3><div class="tbl-wrap"><table class="ctbl"><thead><tr><th>Jugador</th><th class="r">Torneos</th><th class="r">G-P</th><th>Mejor</th></tr></thead><tbody>
+          ${jug.map((j) => `<tr><td>${who(j.q)}</td><td class="r num">${j.n}</td><td class="r num">${j.g}-${j.p}<div class="small muted">${pct(j.g, j.g + j.p) ?? "–"}%</div></td><td class="small">${j.best ? `${medal(j.best)} ${RONDA[j.best] || j.best + "°"}` : "Zona"}${j.pod > 1 ? `<div class="muted">${j.pod} podios</div>` : ""}</td></tr>`).join("")}
+        </tbody></table></div></div>
+        <h2 class="section">Torneos</h2>
+        ${evs.map((e) => { const x = pd(e.f); const pe = e.part.filter(podio);
+          return `<details class="tour circ"><summary><div class="fecha"><b>${x.getDate()}</b><span>${MESES[x.getMonth()].slice(0, 3)}${circState.year ? "" : " " + e.f.slice(2, 4)}</span></div>
+            <span class="t">${circBadge(e.tipo)} <b>${esc(e.ev)}</b><br><span class="small muted">${e.part.length} ${e.part.length === 1 ? "jugador" : "jugadores"} de SPIN${pe.length ? " · " + pe.map((q) => medal(q.pu)).join("") : ""}</span></span></summary>
+            <div class="body"><ul class="list">${e.part.map((q) => circRow(who(q), q)).join("")}</ul><p class="small" style="margin:8px 0 0"><a href="${FET_URL}/historial/torneos/${e.id}" target="_blank" rel="noopener">Ver el torneo completo en FETEMBA ↗</a></p></div></details>`; }).join("")}`;
+    };
+    const ys = document.getElementById("ciY"); ys.value = circState.year || "";
+    ys.onchange = (e) => { circState.year = e.target.value || ""; draw(); };
+    document.getElementById("ciT").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) { circState.tipo = b.dataset.t; draw(); } });
+    draw();
+  }
+
   // ---------- app instalable (PWA)
   let deferredPrompt = null;
   const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
@@ -707,8 +777,9 @@
     else if (r === "calendario") await viewCalendario();
     else if (r === "liga") await viewEquipos("liga");
     else if (r === "copa") await viewEquipos("copa");
+    else if (r === "circuito") await viewCircuito();
     else viewInicio();
-    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes" }[r];
+    const name = { jugadores: "Jugadores", torneos: "Torneos", comparar: "Comparar", club: "El club", app: "Instalar app", calendario: "Calendario", liga: "Liga de Equipos", copa: "Copa de Clubes", circuito: "Grand Slam y Super Series" }[r];
     document.title = r === "jugador" ? `${niceName(byId(decodeURIComponent(parts[1] || ""))?.name || "Jugador")} · SPIN` : name ? `${name} · SPIN Tenis de Mesa` : "SPIN Tenis de Mesa · Jugadores y estadísticas";
   }
 

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       jugadores:
-        description: "Jugadores (TMT + FETEMBA: ratings, rankings, fichas)"
+        description: "Jugadores (TMT + FETEMBA: ratings, rankings, fichas, Grand Slam y Super Series)"
         type: boolean
         default: true
       calendario:
@@ -72,7 +72,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           python scripts/build.py
-          cp _site/data/club.json _site/data/players.json _site/data/calendar.json _site/data/equipos.json data/
+          cp _site/data/club.json _site/data/players.json _site/data/calendar.json _site/data/equipos.json _site/data/circuito.json data/
       - name: Guardar cambios (GitHub Pages publica solo)
         if: ${{ !cancelled() }}
         run: |
