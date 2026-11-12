@@ -836,6 +836,7 @@
         <p>Este sitio <b>no es oficial</b> de TMT ni de FETEMBA, y no tiene relación con esas organizaciones más allá de consultar su información pública.</p></div>
       <div class="card section"><h3>Privacidad</h3>
         <p>No se publican edades ni fechas de nacimiento de los jugadores. El sitio no pide registro ni guarda datos personales: los jugadores que agregás a <a href="#/favoritos">Favoritos</a> quedan solo en tu celular o computadora.</p>
+        <p>Para saber cuánta gente usa el sitio y qué secciones se miran, se cuentan las visitas con <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a>: un contador <b>sin cookies</b> que no guarda datos personales ni identifica a nadie. No se mide qué jugador se mira.</p>
         <p>Si querés que se corrija o se quite algún dato, escribime por <a class="contacto" href="#/legal">correo</a> o al Instagram del club, <a href="https://www.instagram.com/spintdmarg/" target="_blank" rel="noopener">@spintdmarg</a>.</p></div>
       <div class="card section"><h3>Derechos</h3>
         <p>© 2026 Pablo Javier Pereyra. El diseño y el desarrollo del sitio son de su autor. Los datos, nombres y resultados pertenecen a sus respectivas fuentes, y el escudo, al Club SPIN Tenis de Mesa.</p>
@@ -844,6 +845,20 @@
     setContactLinks($app);
   }
 
+  // ---------- contador de visitas (GoatCounter: sin cookies, no guarda datos personales)
+  // Cuenta cada sección como /demo/<sección> (el sitio nuevo cuenta como /<club>/<sección>: así no se mezclan).
+  // Las fichas se juntan en una sola ("jugador"): no se mide qué jugador se mira. Si el contador no cargó, no pasa nada.
+  let contarPendiente = null;
+  const contar = (r) => {
+    try {
+      const path = `/demo/${r === "perfil" ? "favoritos" : r}`;
+      const gc = window.goatcounter;
+      if (gc && gc.count) { gc.count({ path }); return; }
+      if (contarPendiente === null) window.addEventListener("load", () => { try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: contarPendiente }); } catch (e) { /* sin contador */ } });
+      contarPendiente = path;
+    } catch (e) { /* sin contador */ }
+  };
+
   // ---------- router
   async function route() {
     killCharts();
@@ -851,6 +866,7 @@
     const [path, qs] = h.split("?");
     const parts = path.split("/").filter(Boolean);
     const r = parts[0] || "inicio";
+    contar(r);
     document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("on", a.dataset.r === (r === "jugador" ? "jugadores" : r === "perfil" ? "favoritos" : r)));
     document.querySelector(".nav").classList.remove("open");
     const dd = document.querySelector(".nav-dd");
