@@ -20,10 +20,11 @@ on:
         description: "Grand Slam y Super Series (FETEMBA; solo baja si hay novedades)"
         type: boolean
         default: true
-  # Automático: actualiza todo.
-  schedule:
-    # Una vez por semana, los jueves 09:17 UTC = 06:17 en Argentina. Minuto 17 a propósito: a la hora en punto GitHub se satura y puede saltearse la corrida
-    - cron: "17 9 * * 4"
+  # Automático: APAGADO. Los datos se actualizan en clubes-tdm (este sitio demo queda con los datos de la última corrida).
+  # Para volver a activarlo, descomentar estas 4 líneas:
+  # schedule:
+  #   # Una vez por semana, los jueves 09:17 UTC = 06:17 en Argentina
+  #   - cron: "17 9 * * 4"
 
 permissions:
   contents: write
@@ -97,7 +98,15 @@ jobs:
             echo "Sin cambios" | tee -a "$GITHUB_STEP_SUMMARY"
           else
             git commit -m "Actualizar datos: $(IFS=,; echo "${partes[*]}" | sed 's/,/, /g')"
-            git push
+            # Mientras corría (3-4 minutos), o si es un "Re-run" (que usa la versión vieja), main pudo avanzar:
+            # se pone al día con main antes de guardar (los datos están en data/, no choca con el código) y se reintenta.
+            ok=0
+            for i in 1 2 3; do
+              if git fetch -q origin main && git rebase -q origin/main && git push -q origin HEAD:main; then ok=1; break; fi
+              git rebase --abort 2>/dev/null || true
+              echo "No se pudo guardar (intento $i de 3); se reintenta"; sleep $((i * 5))
+            done
+            [ "$ok" = 1 ] || { echo "::error::No se pudieron guardar los datos"; exit 1; }
             echo "Cambios guardados:" | tee -a "$GITHUB_STEP_SUMMARY"
             git show --stat --format= HEAD | sed 's/^/    /' | tee -a "$GITHUB_STEP_SUMMARY"
           fi
