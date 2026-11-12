@@ -22,8 +22,8 @@ on:
         default: true
   # Automático: actualiza todo.
   schedule:
-    # Lunes y jueves 09:00 UTC = 06:00 en Argentina (GitHub puede demorarlo unos minutos)
-    - cron: "0 9 * * 1,4"
+    # Lunes y jueves 09:17 UTC = 06:17 en Argentina. Minuto 17 a propósito: a la hora en punto GitHub se satura y puede saltearse la corrida
+    - cron: "17 9 * * 1,4"
 
 permissions:
   contents: write
