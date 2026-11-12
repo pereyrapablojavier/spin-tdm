@@ -210,7 +210,11 @@ def build():
         "sedes": [{"nombre": "Villa Crespo", "dir": "Antezana 340", "lugar": "Asociación Benito Nazar", "dias": "Lunes a sábados"},
                   {"nombre": "Villa Pueyrredón", "dir": "Terrada 4342", "lugar": "Club La Emiliana", "dias": "Lunes, miércoles, jueves y viernes"},
                   {"nombre": "Saavedra", "dir": "Pico 3540", "lugar": "Asociación Vecinal Loma de Saavedra", "dias": "Lunes, miércoles y viernes"}],
-        "entrenadores": ["Darío Neira", "Rodrigo Ezequiel Delgadillo", "Giselle Muñoz"],
+        "entrenadores": [
+            {"nombre": "Darío Neira", "instagram": "https://www.instagram.com/neiradario89/"},
+            {"nombre": "Rodrigo Ezequiel Delgadillo", "instagram": "https://www.instagram.com/rodrigodelgadillotm/"},
+            {"nombre": "Giselle Muñoz", "instagram": "https://www.instagram.com/giselle.munoz.583/"},
+        ],
         "stats": {
             "tmt_players": len(tmt_pl), "fet_players": len(fet_roster),
             "total_players": len(players),
