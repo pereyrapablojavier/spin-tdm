@@ -210,6 +210,15 @@ def build():
         "sedes": [{"nombre": "Villa Crespo", "dir": "Antezana 340", "lugar": "Asociación Benito Nazar", "dias": "Lunes a sábados"},
                   {"nombre": "Villa Pueyrredón", "dir": "Terrada 4342", "lugar": "Club La Emiliana", "dias": "Lunes, miércoles, jueves y viernes"},
                   {"nombre": "Saavedra", "dir": "Pico 3540", "lugar": "Asociación Vecinal Loma de Saavedra", "dias": "Lunes, miércoles y viernes"}],
+        "horarios_sedes": [
+            {"titulo": "Horarios · Sede Villa Pueyrredón",
+             "texto": "Lunes: 19:30 a 21:00, 21:00 a 22:30\nMiércoles: 20:30 a 22:30\nJueves: 19:00 a 20:30, 20:30 a 22:00\nViernes: 17:00 a 19:00\nSábado: 11:00 a 12:30, 12:30 a 14:00",
+             "notas": ["El club se encuentra dentro del club La Emiliana, contamos acceso para personas con movilidad reducida.",
+                       "Estamos rodeados de múltiples líneas de colectivos que te acercan y a pocas cuadras de la intersección de la Av. Nazca y Av. Salvador María del Carril."]},
+            {"titulo": "Horarios · Sede Villa Saavedra",
+             "texto": "Lunes: 19:00 a 20:30, 20:30 a 22:00\nMiércoles: 19:00 a 20:30, 20:30 a 22:00\nViernes: 19:00 a 20:30, 20:30 a 22:00",
+             "notas": []},
+        ],
         "entrenadores": [
             {"nombre": "Darío Neira", "instagram": "https://www.instagram.com/neiradario89/"},
             {"nombre": "Rodrigo Ezequiel Delgadillo", "instagram": "https://www.instagram.com/rodrigodelgadillotm/"},
