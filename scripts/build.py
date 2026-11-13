@@ -223,9 +223,9 @@ def build():
              "notas": []},
         ],
         "entrenadores": [
-            {"nombre": "Darío Neira", "instagram": "https://www.instagram.com/neiradario89/"},
-            {"nombre": "Rodrigo Ezequiel Delgadillo", "instagram": "https://www.instagram.com/rodrigodelgadillotm/"},
-            {"nombre": "Giselle Muñoz", "instagram": "https://www.instagram.com/giselle.munoz.583/"},
+            {"nombre": "Darío Neira", "jugador": "f893", "instagram": "https://www.instagram.com/neiradario89/"},
+            {"nombre": "Rodrigo Ezequiel Delgadillo", "jugador": "5178", "instagram": "https://www.instagram.com/rodrigodelgadillotm/"},
+            {"nombre": "Giselle Muñoz", "jugador": "f326", "instagram": "https://www.instagram.com/giselle.munoz.583/"},
         ],
         "stats": {
             "tmt_players": len(tmt_pl), "fet_players": len(fet_roster),
