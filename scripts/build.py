@@ -204,8 +204,11 @@ def build():
         "updated": tmt.get("updated"), "fet_updated": fet.get("updated"),
         "nombre": "SPIN Tenis de Mesa", "sigla": "SPI",
         "tmt_code": tmt["club"]["code"], "tmt_rank": tmt["club"].get("rank"), "fet_id": fet_club.get("id"),
-        "direccion": fd.get("direccion"), "localidad": fd.get("localidad"), "horarios": fd.get("horarios"),
-        "instalaciones": fd.get("instalaciones"), "como_llegar": fd.get("como_llegar"),
+        "direccion": fd.get("direccion"), "localidad": fd.get("localidad"),
+        # Villa Crespo: texto propio (copiado de FETEMBA, con "líneas" con tilde). Los cambios en FETEMBA ya no se ven acá.
+        "horarios": "Lunes: 17:30 a 19:00 (Escuelita de Menores), 17:00 a 23:00\nMartes: 11:00 a 13:00, 16:00 a 20:00\nMiércoles: 11:00 a 13:00, 21:00 a 23:00\nJueves: 11:00 a 13:00, 17:00 a 23:00 (Escuelita de Menores de 17:30 a 19hs)\nViernes: 16:00 a 18:00\nSábado: 10:00 a 21:00",
+        "instalaciones": "Cancha de pelota paleta techada · El club se encuentra dentro de la Asociación Benito Nazar, nos ubicamos en el primer piso. Contamos con rampa de acceso para personas con movilidad reducida.",
+        "como_llegar": "Estamos rodeados de múltiples líneas de colectivos que te acercan y a pocas cuadras de las líneas de subtes.",
         "instagram": "https://www.instagram.com/spintdmarg/",
         "sedes": [{"nombre": "Villa Crespo", "dir": "Antezana 340", "lugar": "Asociación Benito Nazar", "dias": "Lunes a sábados"},
                   {"nombre": "Villa Pueyrredón", "dir": "Terrada 4342", "lugar": "Club La Emiliana", "dias": "Lunes, miércoles, jueves y viernes"},
