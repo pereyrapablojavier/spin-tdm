@@ -1,6 +1,6 @@
 {
-  "name": "SPIN Tenis de Mesa",
-  "short_name": "SPIN TDM",
+  "name": "SPIN (demo)",
+  "short_name": "SPIN (demo)",
   "description": "Jugadores, ratings y estadísticas del Club SPIN Tenis de Mesa (TMT y FETEMBA).",
   "lang": "es-AR",
   "id": "./",
